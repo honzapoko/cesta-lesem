@@ -1,0 +1,26 @@
+{
+ "name": "Cesta lesem",
+ "short_name": "Cesta lesem",
+ "description": "Honzova ranní cesta: malé kroky, šňůry dní a odměny.",
+ "lang": "cs",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#EEF3EC",
+ "theme_color": "#1D4A33",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ]
+}
