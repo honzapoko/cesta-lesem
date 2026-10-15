@@ -21,7 +21,7 @@ try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.pars
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-const done = (id, day) => !!(S.logs[day] && S.logs[day][id] && S.logs[day][id].d);
+const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
 const doneDays = id => Object.keys(S.logs).filter(k => done(id, k)).sort();
 const count = id => doneDays(id).length;
 const entry = (id, day) => (S.logs[day] && S.logs[day][id]) || {};
@@ -99,6 +99,39 @@ const QUOTES = [
   'Nikdo nevidí kořeny. A přesto drží celý strom.',
   'Odpočinek není útěk, když se z něj vracíš silnější.'
 ];
+const GESTA = [
+  ['Klid a bezpečí', 'Dnes ji o nic nežádej. Jen ji s úsměvem pozdrav a popřej jí hezký den.'],
+  ['Klid a bezpečí', 'Udělej za ni jednu domácí věc, bez komentáře a bez čekání na poděkování.'],
+  ['Klid a bezpečí', 'Napiš jí krátkou zprávu bez otázky: „Myslím na tebe, ať máš hezký den.“ Odpověď nečekej.'],
+  ['Klid a bezpečí', 'Řekni jí jednu konkrétní věc, kterou na ní obdivuješ. Třeba jak se stará o zvířata.'],
+  ['Klid a bezpečí', 'Když mluví, nech ji domluvit. Neoprav ji, jen zopakuj, co jsi slyšel.'],
+  ['Klid a bezpečí', 'Připrav jí kafe nebo čaj přesně tak, jak ho má ráda.'],
+  ['Klid a bezpečí', 'Respektuj její prostor. Když chce být sama, řekni: „Rozumím, jsem tu, až budeš chtít.“'],
+  ['Důvěra', 'Omluv se za to tajení. Krátce, bez „ale“ a bez vysvětlování, proč jsi to udělal.'],
+  ['Důvěra', 'Řekni jí sám od sebe jednu malou věc, kterou bys dřív zamlčel.'],
+  ['Důvěra', 'Zeptej se: „Co bys ode mě teď potřebovala, aby ti bylo líp?“ Pak jen poslouchej.'],
+  ['Důvěra', 'Dnes nekritizuj nic. Ani domácnost, ani její kluky.'],
+  ['Důvěra', 'Pochval ji před někým dalším, před dětmi nebo kamarádem.'],
+  ['Důvěra', 'Malá pozornost: květina, čokoláda nebo něco, co má ráda. Nemusí stát skoro nic.'],
+  ['Důvěra', 'Napiš jí lísteček a nech ho tam, kde ho najde.'],
+  ['Společný čas', 'Pozvi ji na krátkou procházku s Arčim. Vztah neřeš, jen buďte venku.'],
+  ['Společný čas', 'Zeptej se na její den a na jednu věc, která ji teď těší.'],
+  ['Společný čas', 'Připomeň jí nahlas jednu hezkou společnou vzpomínku.'],
+  ['Společný čas', 'Zeptej se jejích kluků na hru, kterou hrají. Bez výchovných řečí, jen se zajímej.'],
+  ['Společný čas', 'Navrhni malé rande doma, film nebo večeři. Když řekne ne, přijmi to v klidu.'],
+  ['Společný čas', 'Zeptej se, jestli ji můžeš obejmout. Její odpověď je v pořádku, ať je jakákoli.'],
+  ['Společný čas', 'Večer jí řekni, co se ti na dnešku s ní líbilo.'],
+  ['Nový způsob mluvení', 'Když tě něco štve, řekni to jako „cítím… a potřebuju…“, ne jako výčitku.'],
+  ['Nový způsob mluvení', 'Na jednu její výtku odpověz „Máš pravdu v tom, že…“ místo obhajoby.'],
+  ['Nový způsob mluvení', 'Nabídni párovou poradnu jako společný krok. Bez tlaku, rozhodnutí nech na ní.'],
+  ['Nový způsob mluvení', 'Udělej něco, o čem nedávno mluvila, že by chtěla.'],
+  ['Nový způsob mluvení', 'Pošli jí fotku něčeho hezkého z ranního lesa.'],
+  ['Nový způsob mluvení', 'Poděkuj jí za jednu konkrétní věc, kterou dělá pro rodinu.'],
+  ['Nový způsob mluvení', 'Řekni jí, co ses za poslední týdny naučil sám o sobě.'],
+  ['Nový způsob mluvení', 'Zeptej se, jak vnímá posledních pár týdnů. Poslouchej až do konce.'],
+  ['Nový způsob mluvení', 'Napiš jí dopis: co v ní vidíš a jakým partnerem chceš být. Bez nároku na odpověď.']
+];
+const gestIndex = day => { const e = entry('gesto', day); if (typeof e.k === 'number') return e.k; return Math.min(GESTA.length, doneDays('gesto').filter(d => d < day).length); };
 const LEVELS = [[0, 'Semínko'], [100, 'Klíček'], [250, 'Výhonek'], [500, 'Stromek'], [900, 'Strom'], [1500, 'Les']];
 function xp() { let x = 0; for (const day in S.logs) for (const id in S.logs[day]) if (S.logs[day][id].d) x += 10; for (const s of STEPS) for (const m of s.ms) if (msMet(m)) x += 50; return x; }
 function level() { const x = xp(); let i = 0; while (i + 1 < LEVELS.length && x >= LEVELS[i + 1][0]) i++; const next = LEVELS[i + 1]; return { i, name: LEVELS[i][1], x, from: LEVELS[i][0], to: next ? next[0] : null }; }
@@ -170,7 +203,7 @@ function renderTabs() {
 
 // ---------- home ----------
 function visibleTasks() {
-  return STEPS.filter((s, i) => stepOpen(i)).filter(s => { if (s.kind !== 'once') return true; const f = doneDays(s.id)[0]; return !f || f === cur; });
+  return STEPS.filter((s, i) => stepOpen(i)).filter(s => !(s.id === 'zena' && S.gestStart)).filter(s => { if (s.kind !== 'once') return true; const f = doneDays(s.id)[0]; return !f || f === cur; });
 }
 const isDoneFor = s => s.kind === 'week' ? doneDays(s.id).some(d => weekKey(d) === weekKey(cur)) : done(s.id, cur);
 
@@ -195,9 +228,24 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
+    ${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}</section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po procházce č. ${nu.n}. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
+}
+
+function gestCard() {
+  if (!S.gestStart) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro manželku</small><h3>30 malých gest</h3></div></div>
+    <p>Každý den jedno malé gesto bez tlaku. Nejde o to ji získat, ale být člověkem, se kterým se jí bude chtít být. Rozhodnutí je její.</p>
+    <button class="btn" data-gstart="1">Začít 30 gest</button></section>`;
+  const k = gestIndex(cur);
+  if (k >= GESTA.length) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro manželku</small><h3>30 gest máš za sebou</h3></div></div>
+    <p>Pokračuj v tom, co fungovalo nejlíp. Zapiš si to klidně jako svoje vlastní gesto.</p></section>`;
+  const [phase, text] = GESTA[k], e = entry('gesto', cur), on = !!e.d;
+  return `<section class="card gest ${on ? 'done' : ''}"><div class="gtop"><span class="gic">💛</span><div style="flex:1;min-width:0"><small>Gesto ${k + 1} / ${GESTA.length} · ${esc(phase)}</small><h3>${esc(text)}</h3></div>
+    <button class="check ${on ? 'on' : ''}" data-gest="${k}" aria-pressed="${on}" aria-label="Gesto splněno">${I.check}</button></div>
+    <div class="bar"><i style="width:${(k + (on ? 1 : 0)) / GESTA.length * 100}%"></i></div>
+    ${on ? `<label for="n-gesto" class="note">Jak to šlo? Jak ses u toho cítil?</label><textarea id="n-gesto" data-n="1" data-id="gesto" placeholder="Pár slov pro sebe…">${esc(e.n || '')}</textarea>` : '<p class="note" style="margin:0">Nic za to nečekej. Gesto je dárek, ne obchod.</p>'}</section>`;
 }
 
 function weekStrip() {
@@ -393,7 +441,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes');
+  const t = e.target.closest('[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -401,6 +449,8 @@ document.addEventListener('click', e => {
     if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
+  if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }
+  if (ds.gest !== undefined) { const on = !entry('gesto', cur).d; setEntry('gesto', { d: on, k: +ds.gest }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) { toast('Krásné gesto. Teď jí dej prostor.'); afterToggle('gesto'); } return; }
   if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
   if (ds.open) { openSet.has(ds.open) ? openSet.delete(ds.open) : openSet.add(ds.open); render(); return; }
   if (ds.tag) { const id = ds.id, tags = [...(entry(id, cur).tags || [])], k = tags.indexOf(ds.tag); k < 0 ? tags.push(ds.tag) : tags.splice(k, 1); setEntry(id, { tags }, cur); save(); render(); return; }
