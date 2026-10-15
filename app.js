@@ -70,8 +70,8 @@ const UNLOCKS = [
   { n: 6, id: 'rewards', t: 'Obrazovka odměn', d: 'Všechny tvoje odměny pohromadě.' },
   { n: 7, id: 'stats', t: 'Statistiky', d: 'Grafy a úspěšnost za týden a měsíc.' },
   { n: 8, id: 'diary', t: 'Deník vděčnosti', d: 'Všechno, za co jsi byl vděčný, na jednom místě.' },
-  { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Semínka po Les.' },
-  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset procházek. Klíček to oslaví.' }
+  { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Spáče po Mistra slow-play.' },
+  { n: 10, id: 'flower', t: 'Zlatý lístek pro Lenochoda', d: 'Deset procházek. Lenochod to nosí s hrdostí.' }
 ];
 const walks = () => count('les');
 const has = id => { const u = UNLOCKS.find(x => x.id === id); return !!u && walks() >= u.n; };
@@ -96,6 +96,9 @@ const QUOTES = [
   'Tvoje děti si budou pamatovat, že jsi byl s nimi. Ne kolik jsi měl.',
   'Každá fajfka je důkaz, že to jde.',
   'Pomalá cesta je pořád cesta.',
+  'Slow-play: hraj pomalu, ale jistě.',
+  'Lenochod nespěchá, a přesto dojde.',
+  'Nejsilnější tah je ten, který vydržíš opakovat.',
   'Nikdo nevidí kořeny. A přesto drží celý strom.',
   'Odpočinek není útěk, když se z něj vracíš silnější.'
 ];
@@ -132,7 +135,7 @@ const GESTA = [
   ['Nový způsob mluvení', 'Napiš jí dopis: co v ní vidíš a jakým partnerem chceš být. Bez nároku na odpověď.']
 ];
 const gestIndex = day => { const e = entry('gesto', day); if (typeof e.k === 'number') return e.k; return Math.min(GESTA.length, doneDays('gesto').filter(d => d < day).length); };
-const LEVELS = [[0, 'Semínko'], [100, 'Klíček'], [250, 'Výhonek'], [500, 'Stromek'], [900, 'Strom'], [1500, 'Les']];
+const LEVELS = [[0, 'Spáč'], [100, 'Ospalec'], [250, 'Pomalý krok'], [500, 'Stálý krok'], [900, 'Klidná síla'], [1500, 'Mistr slow-play']];
 function xp() { let x = 0; for (const day in S.logs) for (const id in S.logs[day]) if (S.logs[day][id].d) x += 10; for (const s of STEPS) for (const m of s.ms) if (msMet(m)) x += 50; return x; }
 function level() { const x = xp(); let i = 0; while (i + 1 < LEVELS.length && x >= LEVELS[i + 1][0]) i++; const next = LEVELS[i + 1]; return { i, name: LEVELS[i][1], x, from: LEVELS[i][0], to: next ? next[0] : null }; }
 
@@ -144,6 +147,7 @@ const I = {
   lock: '<svg width="22" height="22" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   flame: '<svg viewBox="0 0 24 24"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3-1-3 0-6 1-9z" fill="#F28A2E"/><path d="M12 13c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1.5 1.5-3 3-5z" fill="#FFD27A"/></svg>',
   tree: '<svg viewBox="0 0 24 24"><path d="M12 2 5 12h4l-5 7h16l-5-7h4z" fill="#3FA45B"/><rect x="10.5" y="19" width="3" height="3" fill="#9B6537"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24"><path d="M20 3C10 3 4 8 4 15c0 2 .6 3.8 1.6 5.2C7 13 12 9 17 7c-4 3-8 7-10 14 1 .5 2.2.8 3.4.8C17 21.8 21 15 20 3z" fill="#8FA05A"/></svg>',
   star: '<svg viewBox="0 0 24 24"><path d="m12 2 3 6.5 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21l1.5-7L2 9.3l7-.8z" fill="#F2B233"/></svg>',
   gift: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2-4-6-4-6-1.5S12 7 12 7zm0 0c2-4 6-4 6-1.5S12 7 12 7z" fill="none" stroke="#C98A1E" stroke-width="1.8" stroke-linejoin="round"/></svg>',
   play: '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#3A2A05"/></svg>',
@@ -157,6 +161,9 @@ const I = {
   }
 };
 
+const LEAF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3C10 3 4 8 4 15c0 2 .6 3.8 1.6 5.2C7 13 12 9 17 7c-4 3-8 7-10 14 1 .5 2.2.8 3.4.8C17 21.8 21 15 20 3z" fill="#EFA23A"/></svg>';
+const brand = () => `<div class="brand"><div><div class="logo">Lenochod${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
+const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Lenochod${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
 function scene(h = 260) {
   const night = document.documentElement.dataset.theme === 'dark';
   const pines = (y, s, n, fill) => { let o = ''; for (let k = 0; k < n; k++) { const x = (k * 431 / n + (k % 3) * 9) % 430 - 10, sc = s * (0.8 + (k * 37 % 10) / 25); o += `<path d="M${x} ${y}l${10 * sc} -${30 * sc} ${10 * sc} ${30 * sc}z M${x + 3 * sc} ${y - 14 * sc}l${7 * sc} -${22 * sc} ${7 * sc} ${22 * sc}z" fill="${fill}"/>`; } return o; };
@@ -181,7 +188,7 @@ const app = document.getElementById('app');
 function applyTheme() {
   const dark = has('night') && S.theme === 'dark';
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name=theme-color]').content = dark ? '#0B1A2E' : '#1D4A33';
+  document.querySelector('meta[name=theme-color]').content = dark ? '#1B1A24' : '#FBF3E6';
 }
 
 function render() {
@@ -215,16 +222,21 @@ function viewHome() {
   const tasks = visibleTasks(), nDone = tasks.filter(isDoneFor).length;
   const d = fromIso(cur);
   const lbl = cur === TODAY ? 'Dnes' : cur === addDays(TODAY, -1) ? 'Včera' : DAYNAMES[d.getDay()][0].toUpperCase() + DAYNAMES[d.getDay()].slice(1);
-  let html = `<header class="scene gut">${scene()}<div class="scene-in"><h1>Ahoj Honzo!</h1><p class="lead">${esc(lead)}</p></div>
-    <div class="bubble">${esc(bubble)}</div><div class="hero-m">${mascot(lesToday ? 'cheer' : 'happy', { flower: has('flower') })}</div></header>
+  const C = 2 * Math.PI * 52, frac = tasks.length ? nDone / tasks.length : 0;
+  let html = `<header class="top gut">${brand()}
+    <div class="hero"><div><h1>Ahoj,<br>Honzo!</h1><p>${esc(lead)}</p></div>
+      <div class="ringcard" role="img" aria-label="${cur === TODAY ? 'Dnes' : 'Den'} ${nDone} z ${tasks.length} splněno"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--sunk)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="var(--orange)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}"/></svg>
+      <div class="rt"><small>${cur === TODAY ? 'DNES' : 'DEN'}</small><b>${nDone}/${tasks.length}</b><span>splněno</span></div></div></div></header>
+    <div class="banner">${mascot(lesToday ? 'cheer' : 'happy', { flower: has('flower') })}
+      <div class="streakchip">${I.flame}<div><b>${run}</b><span>${plural(run, 'den', 'dny', 'dní')} v řadě</span></div></div>
+      <div class="bubble"><i>🦥</i><span>${esc(bubble)}</span></div></div>
     <div class="sheet gut"><div class="inner">
     <div class="pill-row">
-      <div class="pill">${I.flame}<div><b>${run}</b><br><span>${plural(run, 'den', 'dny', 'dní')} v řadě</span></div></div>
       <div class="pill">${I.tree}<div><b>${w}</b><br><span>${plural(w, 'procházka', 'procházky', 'procházek')}</span></div></div>
-      ${has('levels') ? `<div class="pill">${I.star}<div><b>${level().x}</b><br><span>XP</span></div></div>` : ''}
+      ${has('levels') ? `<div class="pill">${I.star}<div><b>${level().x}</b><br><span>XP · ${level().name}</span></div></div>` : `<div class="pill">${I.leaf}<div><b>${bestRun('les')}</b><br><span>nejdelší šňůra</span></div></div>`}
     </div>`;
   if (has('week')) html += weekStrip();
-  if (has('quote')) html += `<div class="quote"><div style="font-size:22px">🌿</div><div><small>Věta na den</small>${esc(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length])}</div></div>`;
+  if (has('quote')) html += `<div class="quote"><div class="qi">🍃</div><div><small>Věta na den</small>${esc(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length])}</div></div>`;
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
@@ -275,8 +287,7 @@ function taskHtml(s) {
 function viewPath() {
   let active = -1; STEPS.forEach((s, i) => { if (stepOpen(i) && !msMet(s.ms[0])) active = i; });
   if (active < 0) STEPS.forEach((s, i) => { if (stepOpen(i) && !s.ms.every(msMet)) active = i; });
-  return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <div><h2 class="sec">Tvoje cesta</h2><p class="note" style="margin:4px 0 0">Další krok se odemkne po splnění první mety předchozího. Odměny si napiš sám.</p></div>
+  return `${phead('Tvoje cesta', 'Pomalu, ale jistě. Další krok se odemkne po první metě předchozího.', 'face')}<div class="gut" style="padding-top:18px"><div class="inner">
     <div class="path">${STEPS.map((s, i) => {
       const un = stepOpen(i), all = s.ms.every(msMet), cls = !un ? 'locked' : all ? 'done' : 'active';
       const ms = s.ms.map(m => { const v = Math.min(m.val(), m.goal), met = msMet(m);
@@ -284,7 +295,7 @@ function viewPath() {
           <div class="bar"><i style="width:${v / m.goal * 100}%"></i></div>
           <div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
       return `<div class="node ${cls}">
-        <div class="dot">${i === active ? `<div style="width:46px">${mascot('happy', { flower: has('flower') })}</div>` : all ? '✓' : i + 1}</div>
+        <div class="dot">${i === active ? mascot('face') : all ? '✓' : i + 1}</div>
         <div class="nc"><h3>${s.ic} ${esc(s.t)}</h3><p class="why">${un ? esc(s.why) : 'Odemkne se po splnění kroku ' + i + '.'}</p>${ms}</div></div>`;
     }).join('')}</div></div></div>`;
 }
@@ -301,11 +312,10 @@ function viewCalendar() {
     const can = day <= TODAY && day >= addDays(TODAY, -BACK);
     cells += `<${can ? 'button' : 'div'} class="cd ${w ? 'walk' : ''} ${some ? 'some' : ''} ${day === TODAY ? 'today' : ''} ${day > TODAY ? 'fut' : ''}" ${can ? `data-goto="${day}"` : ''}>${k}</${can ? 'button' : 'div'}>`;
   }
-  return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <h2 class="sec">Kalendář</h2>
+  return `${phead('Kalendář', 'Malé kroky každý den tvoří velké změny.', 'face')}<div class="gut" style="padding-top:18px"><div class="inner">
     <section class="card cal"><div class="calh"><button data-cal="-1" aria-label="Předchozí měsíc">${I.left}</button><h3 style="font-size:20px">${MONTHS[m - 1]} ${y}</h3><button data-cal="1" aria-label="Další měsíc">${I.right}</button></div>
     <div class="calg">${cells}</div>
-    <div class="legend"><span><i style="background:var(--green)"></i>ranní les</span><span><i style="box-shadow:inset 0 0 0 2.5px var(--green)"></i>jiný úkol</span><span><i style="outline:2.5px solid var(--gold)"></i>dnes</span></div></section>
+    <div class="legend"><span><i style="background:var(--olive)"></i>ranní les</span><span><i style="box-shadow:inset 0 0 0 2.5px var(--olive)"></i>jiný úkol</span><span><i style="background:var(--orange)"></i>dnes</span></div></section>
     <div class="tiles"><div class="tile"><b>${walksM}</b><span>lesů tento měsíc</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${walks()}</b><span>celkem</span></div></div>
     <p class="note">Klepnutím na den z posledního týdne ho můžeš doplnit.</p></div></div>`;
 }
@@ -318,8 +328,7 @@ function viewStats() {
   const last30 = Array.from({ length: 30 }, (_, k) => addDays(TODAY, k - 29));
   const pct = id => Math.round(last30.filter(d => done(id, d)).length / 30 * 100);
   const lv = level();
-  return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <h2 class="sec">Statistiky</h2>
+  return `${phead('Statistiky', 'Malé kroky, velké výsledky.', 'face')}<div class="gut" style="padding-top:18px"><div class="inner">
     ${has('levels') ? levelCard(lv) : ''}
     <section class="card" style="padding:14px"><h3 style="font-size:18px">Splněné úkoly za 7 dní</h3>
     <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
@@ -330,22 +339,22 @@ function viewStats() {
 }
 function levelCard(lv) {
   const p = lv.to ? (lv.x - lv.from) / (lv.to - lv.from) * 100 : 100;
-  return `<section class="card level"><div class="m">${mascot('happy', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>`;
+  return `<section class="card level"><div class="m">${mascot('face', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>`;
 }
 
 // ---------- more ----------
 let timerMin = 5, timerLeft = 300, timerRun = null, wake = null;
 function viewMore() {
-  let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
+  let h = `${phead('Více', 'Odměny, meditace a nastavení.', 'face')}<div class="gut" style="padding-top:18px"><div class="inner">`;
   if (has('levels')) h += levelCard(level());
   // unlock list
   h += `<section class="card" style="padding:6px 0"><div style="padding:10px 16px 2px"><h3 style="font-size:18px">Odemčená vylepšení</h3><p class="note" style="margin:2px 0 0">Každá ranní procházka odemkne jedno.</p></div>
     ${UNLOCKS.map(u => { const ok = walks() >= u.n; return `<div class="row"><div><b>${ok ? '✓ ' : ''}${esc(u.t)}</b><span>${ok ? esc(u.d) : 'Procházka č. ' + u.n}</span></div>${ok ? '' : `<span style="color:var(--lock)">${I.lock}</span>`}</div>`; }).join('')}</section>`;
-  if (has('timer')) h += `<section class="card timer" id="timer"><h3 style="font-size:20px">Meditace</h3>
+  if (has('timer')) h += `<section class="card timer" id="timer"><div class="tm">${mascot('calm')}</div>
     <div class="seg">${[5, 10, 20].map(m => `<button data-tmin="${m}" class="${timerMin === m ? 'on' : ''}">${m} min</button>`).join('')}</div>
-    <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--sunk)" stroke-width="7"/><circle id="tarc" cx="50" cy="50" r="44" fill="none" stroke="var(--green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="t" id="tlbl"></div></div>
+    <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--sunk)" stroke-width="7"/><circle id="tarc" cx="50" cy="50" r="44" fill="none" stroke="var(--orange)" stroke-width="7" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="t"><span id="tlbl"></span><small>MEDITACE</small></div></div>
     <button class="play" id="tplay" aria-label="Spustit">${I.play}</button>
-    <p class="note" style="margin:0;text-align:center">Na konci zazní gong a meditace se ti sama odškrtne.</p></section>`;
+    <p class="note" style="margin:0 16px;text-align:center">Klidnější mysl, soustředěnější den. Na konci zazní gong a meditace se sama odškrtne.</p></section>`;
   if (has('rewards')) {
     const all = STEPS.flatMap((s, i) => s.ms.map(m => ({ s, i, m })));
     h += `<h3 style="font-size:20px">Odměny</h3><div class="rgrid">${all.map(({ s, i, m }) => { const met = msMet(m); return `<div class="rcard ${met ? 'met' : ''} ${stepOpen(i) ? '' : 'lockd'}"><b>${met ? '🎁 ' : ''}${esc(m.l)}</b><span>${esc(S.rewards[m.id] || 'Odměnu si napiš na Cestě')}</span><span>${s.ic} ${esc(s.t)}</span></div>`; }).join('')}</div>`;
@@ -419,12 +428,12 @@ function afterToggle(id) {
 function showCel(head, lines, foot) {
   const run = curRun('les');
   const el = document.getElementById('cel');
-  el.innerHTML = `<h1>Skvělé!</h1><div style="font-weight:800;font-size:18px">${esc(head)}</div><div class="cm">${mascot('cheer', { flower: has('flower') })}</div>
-    ${run ? `<div style="font-weight:800">${I.flame.replace('<svg', '<svg width="22" height="22" style="vertical-align:-4px"')} ${run} ${plural(run, 'den', 'dny', 'dní')} v řadě</div>` : ''}
+  el.innerHTML = `<h1>Skvělé!</h1><div class="head">${esc(head)}</div><div class="cm">${mascot('cheer', { flower: has('flower') })}</div>
+    ${run ? `<div class="streak">${I.flame.replace('<svg', '<svg width="24" height="24"')} ${run} ${plural(run, 'den', 'dny', 'dní')} v řadě</div>` : ''}
     ${lines.map(([s, b, p]) => `<div class="box"><small>${esc(s)}</small><b>${esc(b)}</b><span style="font-size:14px;font-weight:600">${esc(p)}</span></div>`).join('')}
     ${foot ? `<div style="font-weight:700;opacity:.9">${esc(foot)}</div>` : ''}
     <button class="btn" id="celOk">Pokračovat</button>`;
-  el.hidden = false; document.getElementById('celOk').focus(); confetti();
+  el.hidden = false; document.getElementById('celOk').focus({ preventScroll: true }); el.scrollTop = 0; confetti();
   document.getElementById('celOk').onclick = () => { el.hidden = true; render(); };
 }
 function confetti() {
