@@ -343,7 +343,7 @@ function levelCard(lv) {
 }
 
 // ---------- more ----------
-let timerMin = 5, timerLeft = 300, timerRun = null, wake = null;
+let timerMin = [5, 10, 20].includes(S.timerMin) ? S.timerMin : 5, timerLeft = timerMin * 60, timerRun = null, wake = null;
 function viewMore() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
   if (has('levels')) h += levelCard(level());
@@ -466,7 +466,7 @@ document.addEventListener('click', e => {
   if (ds.day) { cur = addDays(cur, +ds.day); render(); return; }
   if (ds.cal) { const [y, m] = calMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+ds.cal), 1); calMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); render(); return; }
   if (ds.goto) { cur = ds.goto; tab = 'home'; render(); window.scrollTo(0, 0); return; }
-  if (ds.tmin) { if (timerRun) return; timerMin = +ds.tmin; timerLeft = timerMin * 60; render(); return; }
+  if (ds.tmin) { if (timerRun) return; timerMin = +ds.tmin; timerLeft = timerMin * 60; S.timerMin = timerMin; save(); render(); return; }
   if (t.id === 'themeSw') { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); return; }
   if (t.id === 'exp') { const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `cesta-lesem-zaloha-${TODAY}.json`; document.body.appendChild(a); a.click(); a.remove(); toast('Záloha stažená do telefonu.'); return; }
   if (t.id === 'impYes') { S = Object.assign(S, pendingImport); pendingImport = null; save(); toast('Data obnovena.'); render(); return; }
