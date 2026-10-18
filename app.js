@@ -136,8 +136,40 @@ const LEVELS = [[0, 'Semínko'], [100, 'Klíček'], [250, 'Výhonek'], [500, 'St
 function xp() { let x = 0; for (const day in S.logs) for (const id in S.logs[day]) if (S.logs[day][id].d) x += 10; for (const s of STEPS) for (const m of s.ms) if (msMet(m)) x += 50; return x; }
 function level() { const x = xp(); let i = 0; while (i + 1 < LEVELS.length && x >= LEVELS[i + 1][0]) i++; const next = LEVELS[i + 1]; return { i, name: LEVELS[i][1], x, from: LEVELS[i][0], to: next ? next[0] : null }; }
 
+// ---------- katalog aktivit (volitelné návyky) ----------
+const CATALOG = [
+  ['Klid a mysl', [['ranni-meditace','Ranní meditace'],['dech','Dechové cvičení'],['klid','Klid v hlavě'],['vdecnost','Tři vděčnosti'],['denik','Deník'],['afirmace','Afirmace'],['vizualizace','Vizualizace'],['sebelaskavost','Sebelaskavost'],['emocni-rovnovaha','Emoční rovnováha'],['odpocinek','Odpočinek'],['hudba','Hudba pro duši'],['digitalni-klid','Digitální klid']]],
+  ['Tělo a pohyb', [['ranni-prochazka','Procházka'],['kroky','10 000 kroků'],['posilovani','Posilování'],['beh','Běh'],['kolo','Kolo'],['joga','Jóga'],['protazeni','Protažení'],['pohyb','Pohyb'],['studena-sprcha','Studená sprcha'],['drzeni-tela','Držení těla'],['priroda','Pobyt v přírodě'],['slunce','Slunce a vzduch']]],
+  ['Jídlo a spánek', [['piti','Pitný režim'],['zdravy-talir','Zdravý talíř'],['ovoce','Ovoce každý den'],['mindful-jidlo','Jídlo v klidu'],['bez-cukru','Bez cukru'],['bez-alkoholu','Bez alkoholu'],['nekourim','Nekouřím'],['spanek','Spát včas'],['vecerni-rutina','Večerní rutina'],['ranni-rutina','Ranní rutina']]],
+  ['Práce a růst', [['fokus','Fokus'],['hluboka-prace','Hluboká práce'],['plan-dne','Plán dne'],['tydenni-revize','Týdenní revize'],['cil-tydne','Cíl týdne'],['uceni','Učení'],['cteni','Čtení'],['kreativita','Kreativita'],['osobni-rust','Osobní růst'],['sila-navyku','Síla návyků']]],
+  ['Lidé, domov, peníze', [['socialni','Sociální spojení'],['pomoc','Pomoc druhým'],['dobry-skutek','Dobrý skutek'],['uklid','Úklid prostoru'],['finance','Finanční disciplína'],['setreni','Šetřím chytře']]]
+];
+const CAT = {}; CATALOG.forEach(([g, items]) => items.forEach(([id, t]) => { CAT[id] = { id, t, g }; }));
+const actIcon = id => `<img src="img/acts/${id}.webp" alt="" draggable="false">`;
+const customDef = id => (S.custom || []).find(c => c.id === id);
+// aktivní volitelné návyky jako "kroky" pro domovskou obrazovku
+function activeTasks() {
+  return (S.active || []).map(id => {
+    const c = CAT[id]; if (c) return { id, t: c.t, img: id, kind: 'day', note: 'none', opt: true };
+    const u = customDef(id); if (u) return { id, t: u.t, ic: u.ic || '⭐', kind: 'day', note: 'none', opt: true };
+    return null;
+  }).filter(Boolean);
+}
+function viewPick() {
+  const act = S.active || [];
+  const sec = CATALOG.map(([g, items]) => `<h3 class="pick-h">${esc(g)}</h3><div class="pick-grid">${items.map(([id, t]) => `<button class="pick ${act.includes(id) ? 'on' : ''}" data-pick="${id}" aria-pressed="${act.includes(id)}"><span class="pi">${actIcon(id)}</span><span>${esc(t)}</span></button>`).join('')}</div>`).join('');
+  const custom = (S.custom || []).map(c => `<button class="pick ${act.includes(c.id) ? 'on' : ''}" data-pick="${c.id}" aria-pressed="${act.includes(c.id)}"><span class="pi" style="font-size:30px;display:grid;place-items:center">${esc(c.ic || '⭐')}</span><span>${esc(c.t)}</span></button>`).join('');
+  return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
+    <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Doporučujeme 2–4 najednou, přidávat můžeš kdykoli.</p></div></div>
+    <h3 class="pick-h">Vlastní</h3>
+    <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
+    ${sec}
+    <p class="note">Ranní les s vděčností a kroky Cesty zůstávají vždy; tady si přidáváš, co chceš sledovat navíc.</p>
+  </div></div>`;
+}
+
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -169,6 +201,8 @@ async function pullMerge() {
     if (Array.isArray(st.celebrated)) S.celebrated = [...new Set([...(S.celebrated || []), ...st.celebrated])];
     if (st.celDays) S.celDays = Object.assign({}, st.celDays, S.celDays);
     if (typeof st.unlockSeen === 'number') S.unlockSeen = Math.max(S.unlockSeen || 0, st.unlockSeen);
+    if (Array.isArray(st.active)) S.active = [...new Set([...(S.active || []), ...st.active])];
+    if (Array.isArray(st.custom)) st.custom.forEach(c => { if (!(S.custom || []).some(x => x.id === c.id)) (S.custom = S.custom || []).push(c); });
     if (r.profile.ts > (S.updatedAt || 0)) ['rewards', 'theme', 'timerMin', 'gestStart'].forEach(k => { if (st[k] !== undefined) S[k] = st[k]; });
     else profileDirty = true;
     changed = true;
@@ -216,7 +250,7 @@ function viewDashboard() {
       <section class="card" style="padding:14px"><h3 style="font-size:18px">Splněné úkoly za 7 dní</h3>
         <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
       <section class="card" style="padding:6px 14px"><div style="padding-top:10px"><h3 style="font-size:18px">Za posledních 30 dní</h3></div>
-        ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').map(s => `<div class="arow"><div><span>${s.ic} ${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
+        ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').concat(activeTasks()).map(s => `<div class="arow"><div><span>${s.img ? '' : s.ic + ' '}${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
     </div>
     <h3 style="font-size:20px;margin:6px 0 0">Odznaky</h3>
     <div class="rgrid rgrid3">${badges.map(({ s, i, m }) => { const met = msMet(m), v = Math.min(m.val(), m.goal); return `<div class="rcard ${met ? 'met' : ''} ${stepOpen(i) ? '' : 'lockd'}"><b>${met ? '🏅 ' : ''}${esc(m.l)}</b><span>${s.ic} ${esc(s.t)}</span><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><span>${met ? 'Splněno' : v + ' / ' + m.goal}${S.rewards[m.id] ? ' · 🎁 ' + esc(S.rewards[m.id]) : ''}</span></div>`; }).join('')}</div>
@@ -287,7 +321,7 @@ function applyTheme() {
 function render() {
   const t = iso(new Date()); if (t !== TODAY) { TODAY = t; if (cur > TODAY) cur = TODAY; }
   applyTheme();
-  const views = { home: viewHome, path: viewPath, calendar: viewCalendar, stats: viewStats, more: viewMore };
+  const views = { home: viewHome, path: viewPath, calendar: viewCalendar, stats: viewStats, more: viewMore, pick: viewPick };
   app.innerHTML = views[tab]();
   renderTabs();
   renderSide();
@@ -313,7 +347,7 @@ function viewHome() {
   const hour = new Date().getHours();
   const lead = lesToday ? 'Les máš za sebou. Dnes už jsi vyhrál.' : hour < 11 ? 'Dobré ráno. Les na tebe čeká.' : hour < 18 ? 'Ještě není pozdě na kousek lesa.' : 'Klidný večer. Zapiš, co se povedlo.';
   const bubble = lesToday ? (nu ? `Zítra po lese odemkneš: ${nu.t}` : 'Všechno odemčeno. Jsi borec!') : (nu ? `Po procházce odemkneš: ${nu.t}` : 'Jdeme do lesa?');
-  const tasks = visibleTasks(), nDone = tasks.filter(isDoneFor).length;
+  const tasks = visibleTasks().concat(activeTasks()), nDone = tasks.filter(isDoneFor).length;
   const d = fromIso(cur);
   const lbl = cur === TODAY ? 'Dnes' : cur === addDays(TODAY, -1) ? 'Včera' : DAYNAMES[d.getDay()][0].toUpperCase() + DAYNAMES[d.getDay()].slice(1);
   const C = 2 * Math.PI * 52, frac = tasks.length ? nDone / tasks.length : 0;
@@ -335,7 +369,7 @@ function viewHome() {
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
     ${gestCard()}
-    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}</section>`;
+    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po procházce č. ${nu.n}. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
 }
@@ -372,7 +406,7 @@ function taskHtml(s) {
   }
   const tag = s.kind === 'once' ? '<span class="tag">jednou</span>' : s.kind === 'week' ? '<span class="tag">týdně</span>' : '';
   return `<div class="task"><div class="trow">
-    <div class="ticon" aria-hidden="true">${s.ic}</div>
+    <div class="ticon ${s.img ? 'img' : ''}" aria-hidden="true">${s.img ? actIcon(s.img) : s.ic}</div>
     <div class="tmain"><h3>${esc(s.t)}${tag}</h3><p>${esc(sub)}</p>${s.note !== 'none' ? `<button class="more" data-open="${s.id}" aria-expanded="${open}">${open ? 'Skrýt poznámku' : 'Poznámka'}</button>` : ''}</div>
     <button class="check ${on ? 'on' : ''}" data-toggle="${s.id}" aria-pressed="${on}" aria-label="Splněno: ${esc(s.t)}">${I.check}</button>
   </div>${open ? `<div class="tbody">${body}</div>` : ''}</div>`;
@@ -432,7 +466,7 @@ function viewStats() {
     <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
     <div class="tiles"><div class="tile"><b>${pct('les')} %</b><span>dní s lesem (30 dní)</span></div><div class="tile"><b>${curRun('les')}</b><span>aktuální šňůra</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div></div>
     <section class="card" style="padding:6px 14px"><div style="padding-top:10px"><h3 style="font-size:18px">Za posledních 30 dní</h3></div>
-    ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').map(s => `<div class="arow"><div><span>${s.ic} ${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
+    ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').concat(activeTasks()).map(s => `<div class="arow"><div><span>${s.img ? '' : s.ic + ' '}${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
   </div></div>`;
 }
 function levelCard(lv) {
@@ -551,7 +585,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -559,6 +593,7 @@ document.addEventListener('click', e => {
     if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
+  if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
   if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }
   if (ds.gest !== undefined) { const on = !entry('gesto', cur).d; setEntry('gesto', { d: on, k: +ds.gest }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) { toast('Krásné gesto. Teď jí dej prostor.'); afterToggle('gesto'); } return; }
   if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
@@ -576,6 +611,7 @@ document.addEventListener('click', e => {
   if (t.id === 'cloudWipe') { if (!confirm('Smazat všechny tvoje záznamy z cloudu? V telefonu zůstanou.')) return; cloud.wipe().then(() => { S.cloud.last = 0; S.dirty = []; save(); render(); toast('Data v cloudu smazána.'); }).catch(() => toast('Nepovedlo se.')); return; }
   if (t.id === 'impYes') { S = Object.assign(S, pendingImport); pendingImport = null; save(); toast('Data obnovena.'); render(); return; }
 });
+document.addEventListener('submit', e => { if (e.target.id !== 'customForm') return; e.preventDefault(); const v = document.getElementById('customName').value.trim(); if (!v) return; const id = 'c-' + Date.now().toString(36); (S.custom = S.custom || []).push({ id, t: v, ic: '⭐' }); (S.active = S.active || []).push(id); save(); render(); });
 let pendingImport = null;
 document.addEventListener('change', e => {
   if (e.target.id !== 'imp' || !e.target.files[0]) return;
