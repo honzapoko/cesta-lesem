@@ -159,8 +159,8 @@ const I = {
 };
 
 const LEAF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3C10 3 4 8 4 15c0 2 .6 3.8 1.6 5.2C7 13 12 9 17 7c-4 3-8 7-10 14 1 .5 2.2.8 3.4.8C17 21.8 21 15 20 3z" fill="#EFA23A"/></svg>';
-const brand = () => `<div class="brand"><div><div class="logo">Lenochod${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
-const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Lenochod${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
+const brand = () => `<div class="brand"><div><div class="logo">Klíček${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
+const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Klíček${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
 function scene(h = 260) {
   const night = document.documentElement.dataset.theme === 'dark';
   const pines = (y, s, n, fill) => { let o = ''; for (let k = 0; k < n; k++) { const x = (k * 431 / n + (k % 3) * 9) % 430 - 10, sc = s * (0.8 + (k * 37 % 10) / 25); o += `<path d="M${x} ${y}l${10 * sc} -${30 * sc} ${10 * sc} ${30 * sc}z M${x + 3 * sc} ${y - 14 * sc}l${7 * sc} -${22 * sc} ${7 * sc} ${22 * sc}z" fill="${fill}"/>`; } return o; };
