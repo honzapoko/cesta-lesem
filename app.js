@@ -16,16 +16,16 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
 const KEY = 'cesta-lesem-v2';
-let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0 };
+let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
-const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } };
+const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
 const doneDays = id => Object.keys(S.logs).filter(k => done(id, k)).sort();
 const count = id => doneDays(id).length;
 const entry = (id, day) => (S.logs[day] && S.logs[day][id]) || {};
-const setEntry = (id, patch, day) => { S.logs[day] = S.logs[day] || {}; S.logs[day][id] = Object.assign({}, S.logs[day][id] || {}, patch); };
+const setEntry = (id, patch, day) => { S.logs[day] = S.logs[day] || {}; S.logs[day][id] = Object.assign({}, S.logs[day][id] || {}, patch); S.dayTs[day] = Date.now(); if (!S.dirty.includes(day)) S.dirty.push(day); };
 function bestWindow(id, win) { const ds = doneDays(id); let best = 0; for (let i = 0; i < ds.length; i++) { const end = addDays(ds[i], win - 1); let c = 0; for (let j = i; j < ds.length && ds[j] <= end; j++) c++; best = Math.max(best, c); } return best; }
 function bestRun(id) { const ds = doneDays(id); let best = 0, run = 0, prev = null; for (const d of ds) { run = (prev && addDays(prev, 1) === d) ? run + 1 : 1; best = Math.max(best, run); prev = d; } return best; }
 function curRun(id) { let d = done(id, TODAY) ? TODAY : addDays(TODAY, -1), n = 0; while (done(id, d)) { n++; d = addDays(d, -1); } return n; }
@@ -136,6 +136,102 @@ const LEVELS = [[0, 'Semínko'], [100, 'Klíček'], [250, 'Výhonek'], [500, 'St
 function xp() { let x = 0; for (const day in S.logs) for (const id in S.logs[day]) if (S.logs[day][id].d) x += 10; for (const s of STEPS) for (const m of s.ms) if (msMet(m)) x += 50; return x; }
 function level() { const x = xp(); let i = 0; while (i + 1 < LEVELS.length && x >= LEVELS[i + 1][0]) i++; const next = LEVELS[i + 1]; return { i, name: LEVELS[i][1], x, from: LEVELS[i][0], to: next ? next[0] : null }; }
 
+// ---------- cloud (volitelné) ----------
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart'];
+const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
+const cloudOn = () => !!(window.cloud && window.cloud.user());
+let pushT = null, syncing = false, profileDirty = false;
+function schedulePush() { if (!cloudOn()) return; profileDirty = true; clearTimeout(pushT); pushT = setTimeout(() => pushNow().catch(() => {}), 1500); }
+async function pushNow() {
+  if (!cloudOn() || syncing) return; syncing = true;
+  try {
+    const days = S.dirty.slice();
+    if (days.length) await cloud.pushDays(days.map(d => ({ day: d, data: S.logs[d] || {}, ts: S.dayTs[d] || Date.now() })));
+    if (profileDirty) await cloud.pushProfile(profileState(), S.updatedAt || Date.now());
+    S.dirty = S.dirty.filter(d => !days.includes(d)); profileDirty = false; S.cloud.last = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    const el = document.getElementById('cloudLast'); if (el) el.textContent = cloudLastText();
+  } finally { syncing = false; }
+}
+async function pullMerge() {
+  if (!cloudOn()) return;
+  const r = await cloud.pull(); if (!r) return;
+  let changed = false;
+  for (const row of r.days) {
+    const localTs = S.dayTs[row.day] || 0;
+    if (row.ts > localTs) { S.logs[row.day] = row.data; S.dayTs[row.day] = row.ts; S.dirty = S.dirty.filter(d => d !== row.day); changed = true; }
+    else if (localTs > row.ts && !S.dirty.includes(row.day)) S.dirty.push(row.day);
+  }
+  // dny, které cloud nezná, poslat
+  Object.keys(S.logs).forEach(d => { if (!r.days.some(x => x.day === d) && !S.dirty.includes(d)) S.dirty.push(d); });
+  if (r.profile) {
+    const st = r.profile.state;
+    if (Array.isArray(st.celebrated)) S.celebrated = [...new Set([...(S.celebrated || []), ...st.celebrated])];
+    if (st.celDays) S.celDays = Object.assign({}, st.celDays, S.celDays);
+    if (typeof st.unlockSeen === 'number') S.unlockSeen = Math.max(S.unlockSeen || 0, st.unlockSeen);
+    if (r.profile.ts > (S.updatedAt || 0)) ['rewards', 'theme', 'timerMin', 'gestStart'].forEach(k => { if (st[k] !== undefined) S[k] = st[k]; });
+    else profileDirty = true;
+    changed = true;
+  } else profileDirty = true;
+  S.cloud.email = (cloud.user().email) || '';
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (changed) render();
+  await pushNow();
+}
+async function syncAll() { try { await pullMerge(); } catch (e) { toast('Synchronizace se nepovedla. Zkusím to později.'); } }
+function cloudLastText() { if (!S.cloud.last) return 'Zatím nesynchronizováno'; const d = new Date(S.cloud.last); return `Naposledy ${d.getDate()}. ${d.getMonth() + 1}. v ${d.getHours()}:${pad(d.getMinutes())}`; }
+function cloudCard() {
+  const u = window.cloud && window.cloud.user();
+  if (!u) return `<section class="card"><div class="row" style="border-top:0"><div><b>Cloud a web</b><span>Propoj Google účet a uvidíš své statistiky i na počítači. Záznamy zůstávají i v telefonu.</span></div></div>
+    <div style="padding:0 16px 16px"><button class="btn" id="cloudIn">Propojit s Google účtem</button></div></section>`;
+  return `<section class="card"><div class="row" style="border-top:0"><div><b>Cloud a web</b><span>${esc(u.email || '')} · <span id="cloudLast">${cloudLastText()}</span></span></div></div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px 16px">
+      <button class="btn sec" id="cloudSync">Synchronizovat teď</button>
+      <button class="btn sec" id="cloudOut">Odpojit účet</button>
+      <button class="btn sec" id="cloudWipe" style="color:#B3261E">Smazat moje data z cloudu</button>
+      <p class="note" style="margin:0">Přehled na webu: otevři stejnou adresu v počítači a přihlas se stejným účtem.</p></div></section>`;
+}
+
+// ---------- webový přehled (široká obrazovka) ----------
+const WIDE = () => matchMedia('(min-width: 960px)').matches;
+function viewDashboard() {
+  const u = window.cloud && window.cloud.user();
+  const lv = level();
+  const last7 = Array.from({ length: 7 }, (_, k) => addDays(TODAY, k - 6));
+  const cnt = day => S.logs[day] ? Object.values(S.logs[day]).filter(e => e.d).length : 0;
+  const max = Math.max(3, ...last7.map(cnt));
+  const last30 = Array.from({ length: 30 }, (_, k) => addDays(TODAY, k - 29));
+  const pct = id => Math.round(last30.filter(d => done(id, d)).length / 30 * 100);
+  const badges = STEPS.flatMap((s, i) => s.ms.map(m => ({ s, i, m })));
+  const metN = badges.filter(b => msMet(b.m)).length;
+  const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim()).slice(0, 8);
+  const p = lv.to ? (lv.x - lv.from) / (lv.to - lv.from) * 100 : 100;
+  return `<div class="dash">
+    <div class="dash-head"><div><div class="logo">Klíček${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
+      ${u ? `<button class="btn sec" id="cloudSync" style="width:auto;padding:10px 16px;font-size:14px">Synchronizovat</button>` : `<button class="btn" id="cloudIn" style="width:auto;padding:10px 16px;font-size:14px">Přihlásit přes Google</button>`}</div>
+    ${!u ? `<section class="card" style="padding:16px"><b>Tady uvidíš své statistiky a odznaky.</b><p class="note" style="margin:6px 0 0">Přihlas se stejným Google účtem, který jsi propojil v telefonu (Více → Cloud a web). Data z telefonu se sem načtou.</p></section>` : ''}
+    <section class="card level"><div class="m">${mascot('happy', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>
+    <div class="tiles tiles4"><div class="tile"><b>${walks()}</b><span>procházek</span></div><div class="tile"><b>${curRun('les')}</b><span>dní v řadě</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${metN}/${badges.length}</b><span>odznaků</span></div></div>
+    <div class="dash-cols">
+      <section class="card" style="padding:14px"><h3 style="font-size:18px">Splněné úkoly za 7 dní</h3>
+        <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
+      <section class="card" style="padding:6px 14px"><div style="padding-top:10px"><h3 style="font-size:18px">Za posledních 30 dní</h3></div>
+        ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').map(s => `<div class="arow"><div><span>${s.ic} ${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
+    </div>
+    <h3 style="font-size:20px;margin:6px 0 0">Odznaky</h3>
+    <div class="rgrid rgrid3">${badges.map(({ s, i, m }) => { const met = msMet(m), v = Math.min(m.val(), m.goal); return `<div class="rcard ${met ? 'met' : ''} ${stepOpen(i) ? '' : 'lockd'}"><b>${met ? '🏅 ' : ''}${esc(m.l)}</b><span>${s.ic} ${esc(s.t)}</span><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><span>${met ? 'Splněno' : v + ' / ' + m.goal}${S.rewards[m.id] ? ' · 🎁 ' + esc(S.rewards[m.id]) : ''}</span></div>`; }).join('')}</div>
+    <h3 style="font-size:20px;margin:6px 0 0">Odemčené funkce</h3>
+    <div class="rgrid rgrid3">${UNLOCKS.map(x => { const ok = walks() >= x.n; return `<div class="rcard ${ok ? 'met' : 'lockd'}"><b>${ok ? '✓ ' : ''}${esc(x.t)}</b><span>${ok ? esc(x.d) : 'Procházka č. ' + x.n}</span></div>`; }).join('')}</div>
+    ${days.length ? `<h3 style="font-size:20px;margin:6px 0 0">Deník</h3><div class="diary">${days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
+      return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('')}</div>` : ''}
+  </div>`;
+}
+function renderSide() {
+  const side = document.getElementById('side'); if (!side) return;
+  const wide = WIDE(); side.hidden = !wide; document.body.classList.toggle('wide', wide);
+  if (wide) side.innerHTML = viewDashboard();
+}
+
 // ---------- icons ----------
 const I = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -194,6 +290,7 @@ function render() {
   const views = { home: viewHome, path: viewPath, calendar: viewCalendar, stats: viewStats, more: viewMore };
   app.innerHTML = views[tab]();
   renderTabs();
+  renderSide();
   if (tab === 'more') bindTimer();
 }
 
@@ -365,6 +462,7 @@ function viewMore() {
     h += `<h3 style="font-size:20px">Deník vděčnosti</h3><div class="diary">${days.length ? days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
       return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
   }
+  h += cloudCard();
   h += `<section class="card">
     ${has('night') ? `<div class="row"><div><b>Noční les</b><span>Tmavý motiv</span></div><button class="sw ${S.theme === 'dark' ? 'on' : ''}" id="themeSw" role="switch" aria-checked="${S.theme === 'dark'}" aria-label="Noční les"></button></div>` : ''}
     <div class="row"><div><b>Záloha dat</b><span>Data jsou jen v tomhle telefonu. Občas si je zálohuj.</span></div></div>
@@ -453,7 +551,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes');
+  const t = e.target.closest('[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -472,6 +570,10 @@ document.addEventListener('click', e => {
   if (ds.tmin) { if (timerRun) return; timerMin = +ds.tmin; timerLeft = timerMin * 60; S.timerMin = timerMin; save(); render(); return; }
   if (t.id === 'themeSw') { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); return; }
   if (t.id === 'exp') { const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `cesta-lesem-zaloha-${TODAY}.json`; document.body.appendChild(a); a.click(); a.remove(); toast('Záloha stažená do telefonu.'); return; }
+  if (t.id === 'cloudIn') { if (!window.cloud || !cloud.available()) { toast('Přihlášení teď není dostupné. Zkus to online.'); return; } cloud.signIn().catch(() => toast('Přihlášení se nepovedlo.')); return; }
+  if (t.id === 'cloudSync') { toast('Synchronizuji…'); syncAll().then(() => { toast('Hotovo, data jsou v cloudu.'); render(); }); return; }
+  if (t.id === 'cloudOut') { cloud.signOut().then(() => { S.cloud = { last: 0, email: '' }; save(); render(); toast('Účet odpojen. Data v telefonu zůstala.'); }); return; }
+  if (t.id === 'cloudWipe') { if (!confirm('Smazat všechny tvoje záznamy z cloudu? V telefonu zůstanou.')) return; cloud.wipe().then(() => { S.cloud.last = 0; S.dirty = []; save(); render(); toast('Data v cloudu smazána.'); }).catch(() => toast('Nepovedlo se.')); return; }
   if (t.id === 'impYes') { S = Object.assign(S, pendingImport); pendingImport = null; save(); toast('Data obnovena.'); render(); return; }
 });
 let pendingImport = null;
@@ -493,8 +595,10 @@ document.addEventListener('input', e => {
   else if (el.dataset.n) setEntry(id, { n: el.value }, cur);
   clearTimeout(typeT); typeT = setTimeout(save, 400);
 });
+matchMedia('(min-width: 960px)').addEventListener('change', () => render());
 document.addEventListener('visibilitychange', () => { if (!document.hidden && iso(new Date()) !== TODAY) { cur = iso(new Date()); render(); } });
 
 render();
+if (window.cloud) { cloud.onAuth(() => render()); cloud.init().then(u => { if (u) syncAll(); }).catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
