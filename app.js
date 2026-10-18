@@ -62,16 +62,16 @@ const msMet = m => m.val() >= m.goal;
 const stepOpen = i => i === 0 || msMet(STEPS[i - 1].ms[0]);
 
 const UNLOCKS = [
-  { n: 1, id: 'week', t: 'Týdenní řádka', d: 'Na domovské obrazovce uvidíš celý týden.' },
-  { n: 2, id: 'quote', t: 'Věta na den', d: 'Každé ráno jedna věta pro tebe.' },
-  { n: 3, id: 'timer', t: 'Meditační časovač', d: '5, 10 nebo 20 minut s gongem na konci.' },
-  { n: 4, id: 'calendar', t: 'Kalendář', d: 'Celý měsíc na jednom místě.' },
-  { n: 5, id: 'night', t: 'Noční les', d: 'Tmavý motiv na večery.' },
-  { n: 6, id: 'rewards', t: 'Obrazovka odměn', d: 'Všechny tvoje odměny pohromadě.' },
-  { n: 7, id: 'stats', t: 'Statistiky', d: 'Grafy a úspěšnost za týden a měsíc.' },
-  { n: 8, id: 'diary', t: 'Deník vděčnosti', d: 'Všechno, za co jsi byl vděčný, na jednom místě.' },
-  { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Semínka po Les.' },
-  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset procházek. Klíček to oslaví.' }
+  { n: 1, id: 'week', t: 'Týdenní řádka', d: 'Na domovské obrazovce uvidíš celý týden.', tab: 'home', where: 'Domů, pod maskotem' },
+  { n: 2, id: 'quote', t: 'Věta na den', d: 'Každé ráno jedna věta pro tebe.', tab: 'home', where: 'Domů, pod týdenní řádkou' },
+  { n: 3, id: 'timer', t: 'Meditační časovač', d: '5, 10 nebo 20 minut s gongem na konci.', tab: 'more', where: 'záložka Více' },
+  { n: 4, id: 'calendar', t: 'Kalendář', d: 'Celý měsíc na jednom místě.', tab: 'calendar', where: 'záložka Kalendář' },
+  { n: 5, id: 'night', t: 'Noční les', d: 'Tmavý motiv na večery.', tab: 'more', where: 'záložka Více, přepínač dole' },
+  { n: 6, id: 'rewards', t: 'Obrazovka odměn', d: 'Všechny tvoje odměny pohromadě.', tab: 'more', where: 'záložka Více' },
+  { n: 7, id: 'stats', t: 'Statistiky', d: 'Grafy a úspěšnost za týden a měsíc.', tab: 'stats', where: 'záložka Statistiky' },
+  { n: 8, id: 'diary', t: 'Deník vděčnosti', d: 'Všechno, za co jsi byl vděčný, na jednom místě.', tab: 'more', where: 'záložka Více' },
+  { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Semínka po Les.', tab: 'home', where: 'Domů a Více' },
+  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset procházek. Klíček to oslaví.', tab: 'home', where: 'Domů, u maskota' }
 ];
 const walks = () => count('les');
 const has = id => { const u = UNLOCKS.find(x => x.id === id); return !!u && walks() >= u.n; };
@@ -258,8 +258,9 @@ function gestCard() {
 }
 
 function weekStrip() {
-  const start = weekKey(TODAY);
-  return `<div class="week">${WD.map((n, k) => { const day = addDays(start, k); return `<div class="wd ${done('les', day) ? 'on' : ''} ${day === TODAY ? 'today' : ''}">${n}<i>${done('les', day) ? I.check : ''}</i></div>`; }).join('')}</div>`;
+  const start = weekKey(TODAY), lo = addDays(TODAY, -BACK);
+  return `<div class="week">${WD.map((n, k) => { const day = addDays(start, k), can = day <= TODAY && day >= lo, d = fromIso(day), cls = `wd ${done('les', day) ? 'on' : ''} ${day === TODAY ? 'today' : ''} ${day === cur ? 'cur' : ''}`, inner = `${n}<i>${done('les', day) ? I.check : ''}</i>`;
+    return can ? `<button class="${cls}" data-goto="${day}" aria-label="${DAYNAMES[d.getDay()]} ${d.getDate()}. ${d.getMonth() + 1}.${done('les', day) ? ', les splněn' : ''}">${inner}</button>` : `<div class="${cls} off">${inner}</div>`; }).join('')}</div>`;
 }
 
 function taskHtml(s) {
@@ -419,22 +420,24 @@ function afterToggle(id) {
   if (lesNow) S.celDays[cur] = 1;
   if (!lesNow && !fresh.length && !msNew.length) return;
   save();
-  fresh.forEach(u => lines.push(['Odemkl jsi', u.t, u.d]));
+  fresh.forEach(u => lines.push(['Odemkl jsi', u.t, `${u.d} Najdeš: ${u.where}.`]));
+  const goU = fresh.find(u => u.tab !== 'home') || null;
   msNew.forEach(({ s, i, m }) => { lines.push(['Meta splněna', m.l, S.rewards[m.id] ? 'Tvoje odměna: ' + S.rewards[m.id] : 'Napiš si odměnu na Cestě a dopřej si ji.']); if (m === s.ms[0] && STEPS[i + 1]) lines.push(['Nový krok na cestě', STEPS[i + 1].t, STEPS[i + 1].sub]); });
   const nu = nextUnlock();
   const head = lesNow ? 'Ranní les splněn' : 'Úkol splněn';
-  showCel(head, lines, lesNow && nu ? `Zítra po lese odemkneš: ${nu.t}` : '');
+  showCel(head, lines, lesNow && nu ? `Zítra po lese odemkneš: ${nu.t}` : '', goU ? { tab: goU.tab, label: `Vyzkoušet: ${goU.t}` } : null);
 }
-function showCel(head, lines, foot) {
+function showCel(head, lines, foot, go) {
   const run = curRun('les');
   const el = document.getElementById('cel');
   el.innerHTML = `<h1>Skvělé!</h1><div style="font-weight:800;font-size:18px">${esc(head)}</div><div class="cm">${mascot('cheer', { flower: has('flower') })}</div>
     ${run ? `<div style="font-weight:800">${I.flame.replace('<svg', '<svg width="22" height="22" style="vertical-align:-4px"')} ${run} ${plural(run, 'den', 'dny', 'dní')} v řadě</div>` : ''}
     ${lines.map(([s, b, p]) => `<div class="box"><small>${esc(s)}</small><b>${esc(b)}</b><span style="font-size:14px;font-weight:600">${esc(p)}</span></div>`).join('')}
     ${foot ? `<div style="font-weight:700;opacity:.9">${esc(foot)}</div>` : ''}
-    <button class="btn" id="celOk">Pokračovat</button>`;
+    ${go ? `<button class="btn" id="celGo">${esc(go.label)}</button><button class="btn sec" id="celOk">Pokračovat</button>` : `<button class="btn" id="celOk">Pokračovat</button>`}`;
   el.hidden = false; document.getElementById('celOk').focus(); confetti();
   document.getElementById('celOk').onclick = () => { el.hidden = true; render(); };
+  if (go) document.getElementById('celGo').onclick = () => { el.hidden = true; tab = go.tab; render(); window.scrollTo(0, 0); };
 }
 function confetti() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -465,7 +468,7 @@ document.addEventListener('click', e => {
   if (ds.tag) { const id = ds.id, tags = [...(entry(id, cur).tags || [])], k = tags.indexOf(ds.tag); k < 0 ? tags.push(ds.tag) : tags.splice(k, 1); setEntry(id, { tags }, cur); save(); render(); return; }
   if (ds.day) { cur = addDays(cur, +ds.day); render(); return; }
   if (ds.cal) { const [y, m] = calMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+ds.cal), 1); calMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); render(); return; }
-  if (ds.goto) { cur = ds.goto; tab = 'home'; render(); window.scrollTo(0, 0); return; }
+  if (ds.goto) { cur = ds.goto; tab = 'home'; render(); const tk = document.querySelector('.tasks'); if (tk) { tk.scrollIntoView({ behavior: 'smooth', block: 'start' }); tk.classList.add('hl'); setTimeout(() => tk.classList.remove('hl'), 1600); } else window.scrollTo(0, 0); return; }
   if (ds.tmin) { if (timerRun) return; timerMin = +ds.tmin; timerLeft = timerMin * 60; S.timerMin = timerMin; save(); render(); return; }
   if (t.id === 'themeSw') { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); return; }
   if (t.id === 'exp') { const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `cesta-lesem-zaloha-${TODAY}.json`; document.body.appendChild(a); a.click(); a.remove(); toast('Záloha stažená do telefonu.'); return; }

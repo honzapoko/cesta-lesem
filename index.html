@@ -88,6 +88,13 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .wd i svg{width:18px;height:18px}
 .wd.on i{background:var(--orange);border-color:var(--orange)}
 .wd.today i{box-shadow:0 0 0 4px var(--orange-soft)}
+.wd.cur{color:var(--ink)}
+.wd.cur i{border-color:var(--ink)}
+.wd.on.cur i{border-color:var(--orange);box-shadow:0 0 0 2px var(--ink)}
+.wd.off{opacity:.45}
+button.wd{padding:0;width:100%}
+.tasks{transition:box-shadow .4s}
+.tasks.hl{box-shadow:0 0 0 4px var(--orange)}
 
 .quote{background:var(--olive-soft);border-radius:20px;padding:14px 16px;font-weight:700;display:flex;gap:12px;align-items:center;font-style:italic}
 .quote .qi{font-size:26px;font-style:normal}
