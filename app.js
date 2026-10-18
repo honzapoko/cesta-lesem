@@ -476,6 +476,8 @@ function levelCard(lv) {
 
 // ---------- more ----------
 let timerMin = [5, 10, 20].includes(S.timerMin) ? S.timerMin : 5, timerLeft = timerMin * 60, timerRun = null, wake = null;
+const SOUNDS = [['none', 'Ticho'], ['forest', 'Les'], ['water', 'Voda'], ['rain', 'Déšť']];
+let timerSnd = SOUNDS.some(x => x[0] === S.timerSnd) ? S.timerSnd : 'none';
 function viewMore() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
   if (has('levels')) h += levelCard(level());
@@ -484,6 +486,7 @@ function viewMore() {
     ${UNLOCKS.map(u => { const ok = walks() >= u.n; return `<div class="row"><div><b>${ok ? '✓ ' : ''}${esc(u.t)}</b><span>${ok ? esc(u.d) : 'Procházka č. ' + u.n}</span></div>${ok ? '' : `<span style="color:var(--lock)">${I.lock}</span>`}</div>`; }).join('')}</section>`;
   if (has('timer')) h += `<section class="card timer" id="timer"><h3 style="font-size:20px">Meditace</h3>
     <div class="seg">${[5, 10, 20].map(m => `<button data-tmin="${m}" class="${timerMin === m ? 'on' : ''}">${m} min</button>`).join('')}</div>
+    <div class="seg snd" aria-label="Zvuk na pozadí">${SOUNDS.map(([id, l]) => `<button data-tsnd="${id}" class="${timerSnd === id ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--sunk)" stroke-width="7"/><circle id="tarc" cx="50" cy="50" r="44" fill="none" stroke="var(--green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div class="t" id="tlbl"></div></div>
     <button class="play" id="tplay" aria-label="Spustit">${I.play}</button>
     <p class="note" style="margin:0;text-align:center">Na konci zazní gong a meditace se ti sama odškrtne.</p></section>`;
@@ -516,8 +519,9 @@ function bindTimer() {
   const draw = () => { lbl.textContent = Math.floor(timerLeft / 60) + ':' + pad(timerLeft % 60); arc.style.strokeDashoffset = 276.5 * (1 - timerLeft / (timerMin * 60)); btn.innerHTML = timerRun ? I.pause : I.play; btn.setAttribute('aria-label', timerRun ? 'Pozastavit' : 'Spustit'); };
   draw();
   btn.onclick = async () => {
-    if (timerRun) { clearInterval(timerRun); timerRun = null; releaseWake(); draw(); return; }
+    if (timerRun) { clearInterval(timerRun); timerRun = null; releaseWake(); ambientStop(); draw(); return; }
     gong(0.0001); // unlock audio on tap
+    ambientStart(timerSnd);
     try { wake = await navigator.wakeLock.request('screen'); } catch (e) {}
     const end = Date.now() + timerLeft * 1000;
     timerRun = setInterval(() => {
@@ -527,7 +531,7 @@ function bindTimer() {
     }, 250);
     draw();
   };
-  function finish() { clearInterval(timerRun); timerRun = null; releaseWake(); gong(0.6); if (stepOpen(5) && !done('medit', TODAY)) { setEntry('medit', { d: true }, TODAY); save(); toast('Meditace odškrtnutá. Krásně.'); } else toast('Hotovo. Krásně.'); timerLeft = timerMin * 60; render(); }
+  function finish() { clearInterval(timerRun); timerRun = null; releaseWake(); ambientStop(2.5); gong(0.6); if (stepOpen(5) && !done('medit', TODAY)) { setEntry('medit', { d: true }, TODAY); save(); toast('Meditace odškrtnutá. Krásně.'); } else toast('Hotovo. Krásně.'); timerLeft = timerMin * 60; render(); }
 }
 const releaseWake = () => { try { wake && wake.release(); } catch (e) {} wake = null; };
 let actx = null;
@@ -535,6 +539,53 @@ function gong(vol) {
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
     [196, 392, 588].forEach((f, k) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.type = 'sine'; g.gain.setValueAtTime(vol / (k + 1), actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 5); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 5); });
   } catch (e) {}
+}
+
+// ---------- zvuky na pozadí meditace (generované, bez souborů) ----------
+let amb = null;
+function noiseBuffer(kind) {
+  const sr = actx.sampleRate, len = sr * 4, buf = actx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, last = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    if (kind === 'white') d[i] = w;
+    else if (kind === 'pink') { b0 = 0.99765 * b0 + w * 0.099046; b1 = 0.963 * b1 + w * 0.2965164; b2 = 0.57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
+    else { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } // brown
+  }
+  return buf;
+}
+function ambientStart(kind) {
+  if (!kind || kind === 'none') return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+    ambientStop(0.01);
+    const master = actx.createGain(); master.gain.setValueAtTime(0.0001, actx.currentTime); master.gain.exponentialRampToValueAtTime(1, actx.currentTime + 3); master.connect(actx.destination);
+    const nodes = [], timers = [];
+    const layer = (noise, type, freq, q, gain) => { const src = actx.createBufferSource(); src.buffer = noiseBuffer(noise); src.loop = true; const f = actx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = actx.createGain(); g.gain.value = gain; src.connect(f).connect(g).connect(master); src.start(); nodes.push(src); return f; };
+    const lfo = (target, rate, depth) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = rate; g.gain.value = depth; o.connect(g).connect(target); o.start(); nodes.push(o); };
+    if (kind === 'forest') {
+      const wind = layer('brown', 'lowpass', 420, 0.6, 0.55); lfo(wind.frequency, 0.07, 220);
+      layer('pink', 'bandpass', 2600, 0.5, 0.025); // listí
+      const chirp = () => { const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime, f0 = 2200 + Math.random() * 1800; o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * (1.25 + Math.random() * 0.5), t + 0.12); o.frequency.exponentialRampToValueAtTime(f0 * 0.9, t + 0.25); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3); o.connect(g).connect(master); o.start(t); o.stop(t + 0.32); const n = 1 + (Math.random() * 3 | 0); if (n > 1) timers.push(setTimeout(() => amb && chirp(), 320 + Math.random() * 150)); };
+      const plan = () => { timers.push(setTimeout(() => { if (!amb) return; chirp(); plan(); }, 4000 + Math.random() * 9000)); }; plan();
+    } else if (kind === 'water') {
+      const brook = layer('pink', 'bandpass', 900, 0.9, 0.5); lfo(brook.frequency, 0.9, 260); lfo(brook.Q, 0.23, 0.4);
+      const deep = layer('brown', 'lowpass', 260, 0.7, 0.45); lfo(deep.frequency, 0.13, 90);
+      layer('white', 'highpass', 3500, 0.5, 0.03);
+    } else if (kind === 'rain') {
+      layer('white', 'lowpass', 2400, 0.3, 0.18); layer('pink', 'lowpass', 900, 0.5, 0.3);
+      const drop = () => { const src = actx.createBufferSource(); src.buffer = noiseBuffer('white'); const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800 + Math.random() * 3500; f.Q.value = 6; const g = actx.createGain(), t = actx.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08 + Math.random() * 0.08, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06); src.connect(f).connect(g).connect(master); src.start(t); src.stop(t + 0.08); };
+      const plan = () => { timers.push(setTimeout(() => { if (!amb) return; drop(); plan(); }, 60 + Math.random() * 260)); }; plan();
+    }
+    amb = { master, nodes, timers };
+  } catch (e) {}
+}
+function ambientStop(fade = 1) {
+  if (!amb) return;
+  const a = amb; amb = null;
+  a.timers.forEach(clearTimeout);
+  try { const t = actx.currentTime; a.master.gain.cancelScheduledValues(t); a.master.gain.setValueAtTime(Math.max(a.master.gain.value, 0.0001), t); a.master.gain.exponentialRampToValueAtTime(0.0001, t + fade); } catch (e) {}
+  setTimeout(() => { a.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { a.master.disconnect(); } catch (e) {} }, fade * 1000 + 100);
 }
 
 // ---------- celebrations ----------
@@ -585,7 +636,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -602,6 +653,7 @@ document.addEventListener('click', e => {
   if (ds.day) { cur = addDays(cur, +ds.day); render(); return; }
   if (ds.cal) { const [y, m] = calMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+ds.cal), 1); calMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); render(); return; }
   if (ds.goto) { cur = ds.goto; tab = 'home'; render(); const tk = document.querySelector('.tasks'); if (tk) { tk.scrollIntoView({ behavior: 'smooth', block: 'start' }); tk.classList.add('hl'); setTimeout(() => tk.classList.remove('hl'), 1600); } else window.scrollTo(0, 0); return; }
+  if (ds.tsnd) { timerSnd = ds.tsnd; S.timerSnd = timerSnd; save(); if (timerRun) { ambientStop(0.5); ambientStart(timerSnd); } render(); return; }
   if (ds.tmin) { if (timerRun) return; timerMin = +ds.tmin; timerLeft = timerMin * 60; S.timerMin = timerMin; save(); render(); return; }
   if (t.id === 'themeSw') { S.theme = S.theme === 'dark' ? 'light' : 'dark'; save(); render(); return; }
   if (t.id === 'exp') { const blob = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `cesta-lesem-zaloha-${TODAY}.json`; document.body.appendChild(a); a.click(); a.remove(); toast('Záloha stažená do telefonu.'); return; }
