@@ -1,4 +1,4 @@
-const CACHE = 'lenochod-v5';
+const CACHE = 'lenochod-v6';
 const CORE = ['./', 'index.html', 'app.js', 'mascot.js', 'manifest.webmanifest', 'icon-192.png', 'img/hero.webp', 'img/calm.webp', 'img/cheer.webp', 'img/face.webp', 'img/wave.webp', 'img/walk.webp', 'img/book.webp', 'img/stretch.webp', 'img/heart.webp', 'img/rest.webp', 'img/meditate.webp', 'img/sleep.webp'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

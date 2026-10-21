@@ -276,6 +276,24 @@ nav.tabs button.lockd{opacity:.45}
 .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:700;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 
 
+
+/* zahrada */
+.coin{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:800;white-space:nowrap}
+.coin b{font-family:var(--display);font-size:20px}
+.garden{position:relative;width:100%;aspect-ratio:4/3;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:0 6px 20px rgba(120,80,30,.15)}
+.garden .gbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.garden .gi{position:absolute;transform:translate(-50%,-100%);filter:drop-shadow(0 6px 6px rgba(60,40,10,.25));pointer-events:none}
+.garden .sloth{filter:drop-shadow(0 8px 8px rgba(60,40,10,.3))}
+.seg.scenes{padding:6px;gap:6px;justify-content:center}
+.seg.scenes button{padding:0;border-radius:12px;overflow:hidden;width:56px;height:42px;opacity:.7}
+.seg.scenes button img{width:100%;height:100%;object-fit:cover;display:block}
+.seg.scenes button.on{opacity:1;box-shadow:0 0 0 3px var(--orange)}
+.rcard.shop{align-items:center;text-align:center}
+.rcard.shop img{width:84px;height:84px;object-fit:contain}
+.rcard.shop .btn{padding:8px 12px;font-size:14px;width:auto;margin-top:4px}
+.rcard.shop .btn:disabled{opacity:.6;cursor:default}
+.card .ms{border:0;border-radius:0;background:none;padding:12px 0;border-top:1px solid var(--line)}
+.card .ms:first-child{border-top:0}
 /* výběr aktivit */
 .ticon.img img{width:40px;height:30px;object-fit:contain;display:block}
 .pick-h{font-size:17px;margin:6px 0 -6px}

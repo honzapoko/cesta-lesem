@@ -169,7 +169,7 @@ function viewPick() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -201,6 +201,8 @@ async function pullMerge() {
     if (Array.isArray(st.celebrated)) S.celebrated = [...new Set([...(S.celebrated || []), ...st.celebrated])];
     if (st.celDays) S.celDays = Object.assign({}, st.celDays, S.celDays);
     if (typeof st.unlockSeen === 'number') S.unlockSeen = Math.max(S.unlockSeen || 0, st.unlockSeen);
+    if (st.garden) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned = [...new Set([...(S.garden.owned || []), ...(st.garden.owned || [])])]; if (!S.garden.scene) S.garden.scene = st.garden.scene; }
+    if (st.fullDays) S.fullDays = Object.assign({}, st.fullDays, S.fullDays || {});
     if (Array.isArray(st.active)) S.active = [...new Set([...(S.active || []), ...st.active])];
     if (Array.isArray(st.custom)) st.custom.forEach(c => { if (!(S.custom || []).some(x => x.id === c.id)) (S.custom = S.custom || []).push(c); });
     if (r.profile.ts > (S.updatedAt || 0)) ['rewards', 'theme', 'timerMin', 'gestStart'].forEach(k => { if (st[k] !== undefined) S[k] = st[k]; });
@@ -281,7 +283,7 @@ const I = {
   pause: '<svg width="30" height="30" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="#3A2A05"/><rect x="14" y="5" width="4" height="14" rx="1" fill="#3A2A05"/></svg>',
   tabs: {
     home: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
-    path: '<svg viewBox="0 0 24 24"><path d="M6 21c0-5 12-4 12-9S8 8 8 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/><circle cx="8" cy="3" r="2" fill="currentColor"/><path d="M15 17l3 1-1 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    path: '<svg viewBox="0 0 24 24"><path d="M12 21v-7M12 14c-4 0-7-3-7-8 4 0 7 2 7 8zm0 0c4 0 7-3 7-8-4 0-7 2-7 8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     stats: '<svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
@@ -321,7 +323,7 @@ function applyTheme() {
 function render() {
   const t = iso(new Date()); if (t !== TODAY) { TODAY = t; if (cur > TODAY) cur = TODAY; }
   applyTheme();
-  const views = { home: viewHome, path: viewPath, calendar: viewCalendar, stats: viewStats, more: viewMore, pick: viewPick };
+  const views = { home: viewHome, path: viewGarden, calendar: viewCalendar, stats: viewStats, more: viewMore, pick: viewPick };
   app.innerHTML = views[tab]();
   renderTabs();
   renderSide();
@@ -329,7 +331,7 @@ function render() {
 }
 
 function renderTabs() {
-  const T = [['home', 'Domů'], ['path', 'Cesta'], ['calendar', 'Kalendář', 'calendar'], ['stats', 'Statistiky', 'stats'], ['more', 'Více']];
+  const T = [['home', 'Domů'], ['path', 'Zahrada'], ['calendar', 'Kalendář', 'calendar'], ['stats', 'Statistiky', 'stats'], ['more', 'Více']];
   document.getElementById('tabs').innerHTML = T.map(([id, l, req]) => {
     const locked = req && !has(req);
     return `<button data-tab="${id}" class="${tab === id ? 'on' : ''} ${locked ? 'lockd' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${locked ? I.lock : I.tabs[id]}<span>${l}</span></button>`;
@@ -340,6 +342,7 @@ function renderTabs() {
 function visibleTasks() {
   return STEPS.filter((s, i) => stepOpen(i)).filter(s => !(s.id === 'zena' && S.gestStart)).filter(s => { if (s.kind !== 'once') return true; const f = doneDays(s.id)[0]; return !f || f === cur; });
 }
+function markFull(day) { S.fullDays = S.fullDays || {}; const saved = cur; cur = day; const t = visibleTasks().concat(activeTasks()); const all = t.length > 0 && t.every(isDoneFor); cur = saved; if (all) S.fullDays[day] = 1; else delete S.fullDays[day]; }
 const isDoneFor = s => s.kind === 'week' ? doneDays(s.id).some(d => weekKey(d) === weekKey(cur)) : done(s.id, cur);
 
 // nálada Klíčka podle denní doby a splněných úkolů (laskavě: večer bez splnění = odpočinek, ne výčitka)
@@ -450,6 +453,75 @@ function viewPath() {
         <div class="dot">${i === active ? `<div style="width:46px">${mascot('happy', { flower: has('flower') })}</div>` : all ? '✓' : i + 1}</div>
         <div class="nc"><h3>${s.ic} ${esc(s.t)}</h3><p class="why">${un ? esc(s.why) : 'Odemkne se po splnění kroku ' + i + '.'}</p>${ms}</div></div>`;
     }).join('')}</div></div></div>`;
+}
+
+// ---------- zenová zahrada ----------
+// mince: 1 za splněný úkol, +2 za ranní les, +3 za den se vším hotovým, +10 za každých 7 dní lesa v řadě (počítáno z historie)
+function coinsEarned() {
+  let c = 0; const days = Object.keys(S.logs);
+  for (const day of days) {
+    const L = S.logs[day]; let n = 0;
+    for (const id in L) if (L[id] && L[id].d) { n++; c += id === 'les' ? 3 : 1; }
+    if (n && S.fullDays && S.fullDays[day]) c += 3;
+  }
+  c += Math.floor(bestRun('les') / 7) * 10;
+  return c;
+}
+const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((GARDEN_ITEMS.find(i => i.id === id) || { price: 0 }).price), 0);
+const coins = () => Math.max(0, coinsEarned() - coinsSpent());
+// scény: light = odkud svítí slunce (předměty jsou nasvícené zprava → u scén se sluncem vlevo se zrcadlí)
+const SCENES = [
+  { id: 'path', t: 'Cesta pískem', light: 'right' },
+  { id: 'pine', t: 'Pod borovicí', light: 'left' },
+  { id: 'lake', t: 'U jezera', light: 'right' },
+  { id: 'court', t: 'Nádvoří', light: 'right' },
+  { id: 'sunset', t: 'Západ slunce', light: 'right' }
+];
+// sloty: x,y v % (střed dole = pata předmětu), w = šířka v % scény; lenochod sedí uprostřed
+const SLOTS = {
+  s1: { x: 10, y: 60, w: 20 }, s2: { x: 90, y: 58, w: 20 }, s3: { x: 24, y: 90, w: 26 }, s4: { x: 76, y: 92, w: 26 },
+  s5: { x: 50, y: 58, w: 20 }, s6: { x: 30, y: 70, w: 16 }, s7: { x: 70, y: 70, w: 14 }, s8: { x: 50, y: 104, w: 26 }
+};
+const GARDEN_ITEMS = [
+  { id: 'moss', t: 'Mechový pahorek', price: 5, slot: 's3', w: 24 },
+  { id: 'stones', t: 'Tři kameny', price: 8, slot: 's6', w: 16 },
+  { id: 'steps', t: 'Kamenná cesta', price: 10, slot: 's8', w: 22 },
+  { id: 'bench', t: 'Lavička', price: 12, slot: 's4', w: 24 },
+  { id: 'bamboo', t: 'Bambus', price: 15, slot: 's1', w: 20 },
+  { id: 'chime', t: 'Zvonkohra', price: 15, slot: 's2', w: 6, y: 34 },
+  { id: 'lantern', t: 'Kamenná lucerna', price: 20, slot: 's7', w: 13 },
+  { id: 'table', t: 'Čajový stolek', price: 25, slot: 's4', w: 24, replaces: 'bench' },
+  { id: 'bonsai', t: 'Bonsaj', price: 30, slot: 's6', w: 18, replaces: 'stones' },
+  { id: 'pond', t: 'Jezírko s kaprem', price: 40, slot: 's3', w: 30, replaces: 'moss' },
+  { id: 'bridge', t: 'Můstek', price: 45, slot: 's8', w: 30, replaces: 'steps' },
+  { id: 'tree1', t: 'Sazenice sakury', price: 20, slot: 's5', w: 16 },
+  { id: 'tree2', t: 'Mladá sakura', price: 35, slot: 's5', w: 22, replaces: 'tree1', needs: 'tree1' },
+  { id: 'tree3', t: 'Rozkvetlá sakura', price: 60, slot: 's5', w: 28, replaces: 'tree2', needs: 'tree2' }
+];
+const owned = id => !!(S.garden && S.garden.owned && S.garden.owned.includes(id));
+function gardenMood() { const h = new Date().getHours(); const t = visibleTasks().concat(activeTasks()), n = t.filter(isDoneFor).length; if (t.length && n === t.length) return 'sloth-heart'; if (n) return 'sloth-cheer'; return h >= 20 ? 'sloth-calm' : 'sloth-meditate'; }
+function viewGarden() {
+  S.garden = S.garden || { owned: [], scene: 'path' };
+  const scene = SCENES.find(x => x.id === S.garden.scene) || SCENES[0];
+  const flip = scene.light === 'left';
+  // viditelné předměty: vlastněné, které nejsou nahrazené vlastněným nástupcem
+  const vis = GARDEN_ITEMS.filter(it => owned(it.id) && !GARDEN_ITEMS.some(o => o.replaces === it.id && owned(o.id)));
+  const placed = vis.map(it => { const sl = SLOTS[it.slot]; const x = flip ? 100 - sl.x : sl.x; const y = it.y ?? sl.y; const w = it.w || sl.w;
+    return `<img class="gi" src="img/garden/${it.id}.webp" alt="${esc(it.t)}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)};${flip ? 'transform:translate(-50%,-100%) scaleX(-1)' : ''}">`; }).join('');
+  const c = coins();
+  const shop = GARDEN_ITEMS.filter(it => !owned(it.id) && (!it.needs || owned(it.needs))).map(it => `<div class="rcard shop ${c >= it.price ? '' : 'lockd'}"><img src="img/garden/${it.id}.webp" alt=""><b>${esc(it.t)}</b><span>${it.replaces ? 'Nahradí: ' + esc((GARDEN_ITEMS.find(o => o.id === it.replaces) || {}).t || '') : ''}</span><button class="btn ${c >= it.price ? '' : 'sec'}" data-buy="${it.id}" ${c >= it.price ? '' : 'disabled'}>🪙 ${it.price}</button></div>`).join('');
+  const metas = STEPS.filter((s, i) => stepOpen(i)).flatMap(s => s.ms.map(m => ({ s, m }))).map(({ s, m }) => { const v = Math.min(m.val(), m.goal), met = msMet(m);
+    return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
+  return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ.</p></div><div class="coin">🪙 <b>${c}</b></div></div>
+    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:76%;width:17%;z-index:76"></div>
+    <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
+    <h3 style="font-size:20px;margin:6px 0 -6px">Obchod</h3>
+    ${shop ? `<div class="rgrid">${shop}</div>` : '<p class="note">Zahrada je kompletní. Krása.</p>'}
+    <h3 style="font-size:20px;margin:6px 0 -6px">Mety a odměny</h3>
+    <section class="card" style="padding:4px 14px 12px">${metas}</section>
+    <p class="note">Mince: 1 za úkol, 3 za ranní les, +3 za den se vším hotovým, +10 za každých 7 dní lesa v řadě.</p>
+  </div></div></div>`;
 }
 
 // ---------- calendar ----------
@@ -658,7 +730,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -666,10 +738,12 @@ document.addEventListener('click', e => {
     if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
+  if (ds.buy) { const it = GARDEN_ITEMS.find(x => x.id === ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
+  if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
   if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }
   if (ds.gest !== undefined) { const on = !entry('gesto', cur).d; setEntry('gesto', { d: on, k: +ds.gest }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) { toast('Krásné gesto. Teď jí dej prostor.'); afterToggle('gesto'); } return; }
-  if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
+  if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); markFull(cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
   if (ds.open) { openSet.has(ds.open) ? openSet.delete(ds.open) : openSet.add(ds.open); render(); return; }
   if (ds.tag) { const id = ds.id, tags = [...(entry(id, cur).tags || [])], k = tags.indexOf(ds.tag); k < 0 ? tags.push(ds.tag) : tags.splice(k, 1); setEntry(id, { tags }, cur); save(); render(); return; }
   if (ds.day) { cur = addDays(cur, +ds.day); render(); return; }
