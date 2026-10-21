@@ -1,5 +1,5 @@
-const CACHE = 'lenochod-v3';
-const CORE = ['./', 'index.html', 'app.js', 'mascot.js', 'manifest.webmanifest', 'icon-192.png', 'img/hero.webp', 'img/calm.webp', 'img/cheer.webp', 'img/face.webp'];
+const CACHE = 'lenochod-v4';
+const CORE = ['./', 'index.html', 'app.js', 'mascot.js', 'manifest.webmanifest', 'icon-192.png', 'img/hero.webp', 'img/calm.webp', 'img/cheer.webp', 'img/face.webp', 'img/wave.webp', 'img/walk.webp', 'img/book.webp', 'img/stretch.webp', 'img/heart.webp', 'img/rest.webp', 'img/meditate.webp'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 // network first for the app itself (so updates arrive), cache fallback offline; fonts cache-first

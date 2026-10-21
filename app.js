@@ -342,12 +342,32 @@ function visibleTasks() {
 }
 const isDoneFor = s => s.kind === 'week' ? doneDays(s.id).some(d => weekKey(d) === weekKey(cur)) : done(s.id, cur);
 
+// nálada Klíčka podle denní doby a splněných úkolů (laskavě: večer bez splnění = odpočinek, ne výčitka)
+function homeMood(hour, nDone, total, today) {
+  if (total && nDone === total) return total > 1 ? 'heart' : 'happy';
+  if (!today) return nDone ? 'walk' : 'rest';
+  if (hour < 11) return nDone ? 'walk' : 'wave';
+  if (hour < 18) return nDone ? 'walk' : 'stretch';
+  return nDone ? 'book' : 'rest';
+}
+function moodLead(mood, hour, nDone, total) {
+  switch (mood) {
+    case 'heart': case 'happy': return hour >= 18 ? 'Všechno hotovo. Dnes jsi vyhrál, užij si večer.' : 'Všechno hotovo. Dnes už jsi vyhrál.';
+    case 'wave': return 'Dobré ráno. Les na tebe čeká.';
+    case 'walk': return `Jde ti to. ${nDone} z ${total} hotovo, pokračuj svým tempem.`;
+    case 'stretch': return 'Ještě není pozdě. Jedna malá věc stačí.';
+    case 'book': return `Klidný večer. ${nDone} z ${total} máš za sebou.`;
+    case 'rest': return hour >= 22 ? 'Dnes Klíček odpočíval. Zítra je nový den.' : 'Klidný večer. Jednu malou věc ještě stihneš.';
+  }
+  return 'Pomalu, ale jistě.';
+}
+
 function viewHome() {
   const w = walks(), run = curRun('les'), nu = nextUnlock(), lesToday = done('les', TODAY);
   const hour = new Date().getHours();
-  const lead = lesToday ? 'Les máš za sebou. Dnes už jsi vyhrál.' : hour < 11 ? 'Dobré ráno. Les na tebe čeká.' : hour < 18 ? 'Ještě není pozdě na kousek lesa.' : 'Klidný večer. Zapiš, co se povedlo.';
   const bubble = lesToday ? (nu ? `Zítra po lese odemkneš: ${nu.t}` : 'Všechno odemčeno. Jsi borec!') : (nu ? `Po procházce odemkneš: ${nu.t}` : 'Jdeme do lesa?');
   const tasks = visibleTasks().concat(activeTasks()), nDone = tasks.filter(isDoneFor).length;
+  const mood = homeMood(hour, nDone, tasks.length, cur === TODAY), lead = moodLead(mood, hour, nDone, tasks.length);
   const d = fromIso(cur);
   const lbl = cur === TODAY ? 'Dnes' : cur === addDays(TODAY, -1) ? 'Včera' : DAYNAMES[d.getDay()][0].toUpperCase() + DAYNAMES[d.getDay()].slice(1);
   const C = 2 * Math.PI * 52, frac = tasks.length ? nDone / tasks.length : 0;
@@ -355,7 +375,7 @@ function viewHome() {
     <div class="hero"><div><h1>Ahoj,<br>Honzo!</h1><p>${esc(lead)}</p></div>
       <div class="ringcard" role="img" aria-label="${cur === TODAY ? 'Dnes' : 'Den'} ${nDone} z ${tasks.length} splněno"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--sunk)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="var(--orange)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}"/></svg>
       <div class="rt"><small>${cur === TODAY ? 'DNES' : 'DEN'}</small><b>${nDone}/${tasks.length}</b><span>splněno</span></div></div></div></header>
-    <div class="banner">${mascot(lesToday ? 'cheer' : 'happy', { flower: has('flower') })}
+    <div class="banner banner-${mood}">${mascot(mood, { flower: has('flower') })}
       <div class="streakchip">${I.flame}<div><b>${run}</b><span>${plural(run, 'den', 'dny', 'dní')} v řadě</span></div></div>
       <div class="bubble"><i>🦥</i><span>${esc(bubble)}</span></div></div>
     <div class="sheet gut"><div class="inner">

@@ -56,6 +56,9 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .banner{position:relative;max-width:560px;margin:4px auto 0;height:250px;overflow:hidden}
 .banner .masc{position:absolute;inset:0}
 .banner .masc img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 70%,transparent 100%),linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 70%,transparent 100%),linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%);mask-composite:intersect}
+.banner-book .masc img,.banner-heart .masc img{object-position:50% 52%}
+.banner-walk .masc img{object-position:50% 38%}
+.banner-rest .masc img{object-position:50% 34%}
 :root[data-theme="dark"] .banner .masc img{filter:brightness(.82) saturate(.95)}
 .bubble{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:30px;background:var(--card);color:var(--ink);border-radius:18px;padding:10px 14px;font-size:13px;font-weight:800;max-width:180px;box-shadow:0 8px 24px rgba(120,80,30,.16);display:flex;gap:8px;align-items:flex-start;z-index:1}
 .bubble i{font-style:normal;font-size:16px;line-height:1.1}
