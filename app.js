@@ -140,7 +140,7 @@ function level() { const x = xp(); let i = 0; while (i + 1 < LEVELS.length && x 
 const CATALOG = [
   ['Klid a mysl', [['ranni-meditace','Ranní meditace'],['dech','Dechové cvičení'],['klid','Klid v hlavě'],['vdecnost','Tři vděčnosti'],['denik','Deník'],['afirmace','Afirmace'],['vizualizace','Vizualizace'],['sebelaskavost','Sebelaskavost'],['emocni-rovnovaha','Emoční rovnováha'],['odpocinek','Odpočinek'],['hudba','Hudba pro duši'],['digitalni-klid','Digitální klid']]],
   ['Tělo a pohyb', [['ranni-prochazka','Procházka'],['kroky','10 000 kroků'],['posilovani','Posilování'],['beh','Běh'],['kolo','Kolo'],['joga','Jóga'],['protazeni','Protažení'],['pohyb','Pohyb'],['studena-sprcha','Studená sprcha'],['drzeni-tela','Držení těla'],['priroda','Pobyt v přírodě'],['slunce','Slunce a vzduch']]],
-  ['Jídlo a spánek', [['piti','Pitný režim'],['zdravy-talir','Zdravý talíř'],['ovoce','Ovoce každý den'],['mindful-jidlo','Jídlo v klidu'],['bez-cukru','Bez cukru'],['bez-alkoholu','Bez alkoholu'],['nekourim','Nekouřím'],['spanek','Spát včas'],['zuby','Čištění zubů'],['sprcha','Sprchování'],['vecerni-rutina','Večerní rutina'],['ranni-rutina','Ranní rutina']]],
+  ['Jídlo a spánek', [['piti','Pitný režim'],['zdravy-talir','Zdravý talíř'],['ovoce','Ovoce každý den'],['mindful-jidlo','Jídlo v klidu'],['bez-cukru','Bez cukru'],['bez-alkoholu','Bez alkoholu'],['nekourim','Nekouřím'],['spanek','Spát včas'],['zuby','Čištění zubů'],['sprcha','Sprchování'],['postel','Ustlání postele'],['vecerni-rutina','Večerní rutina'],['ranni-rutina','Ranní rutina']]],
   ['Práce a růst', [['fokus','Fokus'],['hluboka-prace','Hluboká práce'],['plan-dne','Plán dne'],['tydenni-revize','Týdenní revize'],['cil-tydne','Cíl týdne'],['uceni','Učení'],['cteni','Čtení'],['kreativita','Kreativita'],['osobni-rust','Osobní růst'],['sila-navyku','Síla návyků']]],
   ['Lidé, domov, peníze', [['socialni','Sociální spojení'],['pomoc','Pomoc druhým'],['dobry-skutek','Dobrý skutek'],['uklid','Úklid prostoru'],['finance','Finanční disciplína'],['setreni','Šetřím chytře']]]
 ];
@@ -348,6 +348,7 @@ function homeMood(hour, nDone, total, today) {
   if (!today) return nDone ? 'walk' : 'rest';
   if (hour < 11) return nDone ? 'walk' : 'wave';
   if (hour < 18) return nDone ? 'walk' : 'stretch';
+  if (hour >= 22) return nDone ? 'book' : 'sleep';
   return nDone ? 'book' : 'rest';
 }
 function moodLead(mood, hour, nDone, total) {
@@ -357,7 +358,8 @@ function moodLead(mood, hour, nDone, total) {
     case 'walk': return `Jde ti to. ${nDone} z ${total} hotovo, pokračuj svým tempem.`;
     case 'stretch': return 'Ještě není pozdě. Jedna malá věc stačí.';
     case 'book': return `Klidný večer. ${nDone} z ${total} máš za sebou.`;
-    case 'rest': return hour >= 22 ? 'Dnes Klíček odpočíval. Zítra je nový den.' : 'Klidný večer. Jednu malou věc ještě stihneš.';
+    case 'rest': return 'Klidný večer. Jednu malou věc ještě stihneš.';
+    case 'sleep': return 'Dnes Klíček odpočíval. Zítra je nový den, žádný stres.';
   }
   return 'Pomalu, ale jistě.';
 }
