@@ -480,7 +480,7 @@ const SCENES = [
 // sloty: x,y v % (střed dole = pata předmětu), w = šířka v % scény; lenochod sedí uprostřed
 const SLOTS = {
   s1: { x: 10, y: 60, w: 20 }, s2: { x: 90, y: 58, w: 20 }, s3: { x: 24, y: 90, w: 26 }, s4: { x: 76, y: 92, w: 26 },
-  s5: { x: 50, y: 58, w: 20 }, s6: { x: 30, y: 70, w: 16 }, s7: { x: 70, y: 70, w: 14 }, s8: { x: 50, y: 104, w: 26 }
+  s5: { x: 50, y: 58, w: 20 }, s6: { x: 30, y: 70, w: 16 }, s7: { x: 70, y: 70, w: 14 }, s8: { x: 50, y: 108, w: 24 }
 };
 const GARDEN_ITEMS = [
   { id: 'moss', t: 'Mechový pahorek', price: 5, slot: 's3', w: 24 },
@@ -499,7 +499,7 @@ const GARDEN_ITEMS = [
   { id: 'tree3', t: 'Rozkvetlá sakura', price: 60, slot: 's5', w: 28, replaces: 'tree2', needs: 'tree2' }
 ];
 const owned = id => !!(S.garden && S.garden.owned && S.garden.owned.includes(id));
-function gardenMood() { const h = new Date().getHours(); const t = visibleTasks().concat(activeTasks()), n = t.filter(isDoneFor).length; if (t.length && n === t.length) return 'sloth-heart'; if (n) return 'sloth-cheer'; return h >= 20 ? 'sloth-calm' : 'sloth-meditate'; }
+function gardenMood() { return 'sloth-meditate'; }
 function viewGarden() {
   S.garden = S.garden || { owned: [], scene: 'path' };
   const scene = SCENES.find(x => x.id === S.garden.scene) || SCENES[0];
@@ -514,7 +514,7 @@ function viewGarden() {
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ.</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:76%;width:17%;z-index:76"></div>
+    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:80%;width:24%;z-index:80"></div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
     <h3 style="font-size:20px;margin:6px 0 -6px">Obchod</h3>
     ${shop ? `<div class="rgrid">${shop}</div>` : '<p class="note">Zahrada je kompletní. Krása.</p>'}
