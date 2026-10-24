@@ -282,7 +282,14 @@ nav.tabs button.lockd{opacity:.45}
 .coin b{font-family:var(--display);font-size:20px}
 .garden{position:relative;width:100%;aspect-ratio:4/3;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:0 6px 20px rgba(120,80,30,.15)}
 .garden .gbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.garden .gi{position:absolute;transform:translate(-50%,-100%);filter:drop-shadow(0 6px 6px rgba(60,40,10,.25));pointer-events:none}
+.garden .gi{position:absolute;transform:translate(-50%,-100%);filter:drop-shadow(0 6px 6px rgba(60,40,10,.25));padding:0;border:0;background:none}
+.garden button.gi img{width:100%;display:block}
+.garden button.gi:active{filter:drop-shadow(0 6px 6px rgba(60,40,10,.25)) brightness(1.12)}
+.garden img.gi{pointer-events:none}
+.sellbox{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:200;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:220px;max-width:calc(100% - 24px);box-shadow:0 8px 24px rgba(60,40,10,.25);text-align:center}
+.sellbox span{font-size:13px;color:var(--muted);font-weight:700}
+.sellbox div{display:flex;gap:8px;margin-top:4px}
+.sellbox .btn{padding:9px 12px;font-size:14px}
 .garden .sloth{filter:drop-shadow(0 8px 8px rgba(60,40,10,.3))}
 .seg.scenes{padding:6px;gap:6px;justify-content:center}
 .seg.scenes button{padding:0;border-radius:12px;overflow:hidden;width:56px;height:42px;opacity:.7}

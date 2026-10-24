@@ -507,14 +507,14 @@ function viewGarden() {
   // viditelné předměty: vlastněné, které nejsou nahrazené vlastněným nástupcem
   const vis = GARDEN_ITEMS.filter(it => owned(it.id) && !GARDEN_ITEMS.some(o => o.replaces === it.id && owned(o.id)));
   const placed = vis.map(it => { const sl = SLOTS[it.slot]; const x = flip ? 100 - sl.x : sl.x; const y = it.y ?? sl.y; const w = it.w || sl.w;
-    return `<img class="gi" src="img/garden/${it.id}.webp" alt="${esc(it.t)}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)};${flip ? 'transform:translate(-50%,-100%) scaleX(-1)' : ''}">`; }).join('');
+    return `<button class="gi" data-sell="${it.id}" aria-label="${esc(it.t)}, prodat za ${it.price}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)}"><img src="img/garden/${it.id}.webp" alt="" style="${flip ? 'transform:scaleX(-1)' : ''}"></button>`; }).join('');
   const c = coins();
   const shop = GARDEN_ITEMS.filter(it => !owned(it.id) && (!it.needs || owned(it.needs))).map(it => `<div class="rcard shop ${c >= it.price ? '' : 'lockd'}"><img src="img/garden/${it.id}.webp" alt=""><b>${esc(it.t)}</b><span>${it.replaces ? 'Nahradí: ' + esc((GARDEN_ITEMS.find(o => o.id === it.replaces) || {}).t || '') : ''}</span><button class="btn ${c >= it.price ? '' : 'sec'}" data-buy="${it.id}" ${c >= it.price ? '' : 'disabled'}>🪙 ${it.price}</button></div>`).join('');
   const metas = STEPS.filter((s, i) => stepOpen(i)).flatMap(s => s.ms.map(m => ({ s, m }))).map(({ s, m }) => { const v = Math.min(m.val(), m.goal), met = msMet(m);
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ.</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:80%;width:24%;z-index:80"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět.</p></div><div class="coin">🪙 <b>${c}</b></div></div>
+    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = GARDEN_ITEMS.find(x => x.id === S.sell); if (!it) return ''; const dep = GARDEN_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:80%;width:24%;z-index:80"></div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
     <h3 style="font-size:20px;margin:6px 0 -6px">Obchod</h3>
     ${shop ? `<div class="rgrid">${shop}</div>` : '<p class="note">Zahrada je kompletní. Krása.</p>'}
@@ -730,7 +730,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -738,6 +738,9 @@ document.addEventListener('click', e => {
     if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
+  if (ds.sell) { S.sell = S.sell === ds.sell ? null : ds.sell; render(); return; }
+  if (ds.sellno) { S.sell = null; render(); return; }
+  if (ds.sellyes) { const it = GARDEN_ITEMS.find(x => x.id === ds.sellyes); if (it && owned(it.id) && !GARDEN_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
   if (ds.buy) { const it = GARDEN_ITEMS.find(x => x.id === ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
   if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
