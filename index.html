@@ -283,7 +283,9 @@ nav.tabs button.lockd{opacity:.45}
 .garden{position:relative;width:100%;aspect-ratio:4/3;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:0 6px 20px rgba(120,80,30,.15)}
 .garden .gbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .garden .gi{position:absolute;transform:translate(-50%,-100%);filter:drop-shadow(0 6px 6px rgba(60,40,10,.25));padding:0;border:0;background:none}
-.garden button.gi img{width:100%;display:block}
+.garden button.gi img{width:100%;display:block;pointer-events:none}
+.garden .gi{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+.garden .gi.lift{transform:translate(-50%,-104%) scale(1.06);filter:drop-shadow(0 16px 14px rgba(60,40,10,.35));cursor:grabbing;transition:transform .12s}
 .garden button.gi:active{filter:drop-shadow(0 6px 6px rgba(60,40,10,.25)) brightness(1.12)}
 .garden img.gi{pointer-events:none}
 .sellbox{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:200;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:220px;max-width:calc(100% - 24px);box-shadow:0 8px 24px rgba(60,40,10,.25);text-align:center}

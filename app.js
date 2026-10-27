@@ -201,7 +201,7 @@ async function pullMerge() {
     if (Array.isArray(st.celebrated)) S.celebrated = [...new Set([...(S.celebrated || []), ...st.celebrated])];
     if (st.celDays) S.celDays = Object.assign({}, st.celDays, S.celDays);
     if (typeof st.unlockSeen === 'number') S.unlockSeen = Math.max(S.unlockSeen || 0, st.unlockSeen);
-    if (st.garden) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned = [...new Set([...(S.garden.owned || []), ...(st.garden.owned || [])])]; if (!S.garden.scene) S.garden.scene = st.garden.scene; }
+    if (st.garden) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned = [...new Set([...(S.garden.owned || []), ...(st.garden.owned || [])])]; if (!S.garden.scene) S.garden.scene = st.garden.scene; if (st.garden.pos && r.profile.ts > (S.updatedAt || 0)) S.garden.pos = st.garden.pos; }
     if (st.fullDays) S.fullDays = Object.assign({}, st.fullDays, S.fullDays || {});
     if (Array.isArray(st.active)) S.active = [...new Set([...(S.active || []), ...st.active])];
     if (Array.isArray(st.custom)) st.custom.forEach(c => { if (!(S.custom || []).some(x => x.id === c.id)) (S.custom = S.custom || []).push(c); });
@@ -506,16 +506,18 @@ function viewGarden() {
   const flip = scene.light === 'left';
   // viditelné předměty: vlastněné, které nejsou nahrazené vlastněným nástupcem
   const vis = GARDEN_ITEMS.filter(it => owned(it.id) && !GARDEN_ITEMS.some(o => o.replaces === it.id && owned(o.id)));
-  const placed = vis.map(it => { const sl = SLOTS[it.slot]; const x = flip ? 100 - sl.x : sl.x; const y = it.y ?? sl.y; const w = it.w || sl.w;
-    return `<button class="gi" data-sell="${it.id}" aria-label="${esc(it.t)}, prodat za ${it.price}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)}"><img src="img/garden/${it.id}.webp" alt="" style="${flip ? 'transform:scaleX(-1)' : ''}"></button>`; }).join('');
+  const pos = (S.garden.pos && S.garden.pos[scene.id]) || {};
+  const placed = vis.map(it => { const sl = SLOTS[it.slot]; const pp = pos[it.id]; const x = pp ? pp.x : (flip ? 100 - sl.x : sl.x); const y = pp ? pp.y : (it.y ?? sl.y); const w = it.w || sl.w;
+    return `<button class="gi" data-sell="${it.id}" data-drag="${it.id}" aria-label="${esc(it.t)}, prodat za ${it.price}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)}"><img src="img/garden/${it.id}.webp" alt="" style="${flip ? 'transform:scaleX(-1)' : ''}"></button>`; }).join('');
   const c = coins();
   const shop = GARDEN_ITEMS.filter(it => !owned(it.id) && (!it.needs || owned(it.needs))).map(it => `<div class="rcard shop ${c >= it.price ? '' : 'lockd'}"><img src="img/garden/${it.id}.webp" alt=""><b>${esc(it.t)}</b><span>${it.replaces ? 'Nahradí: ' + esc((GARDEN_ITEMS.find(o => o.id === it.replaces) || {}).t || '') : ''}</span><button class="btn ${c >= it.price ? '' : 'sec'}" data-buy="${it.id}" ${c >= it.price ? '' : 'disabled'}>🪙 ${it.price}</button></div>`).join('');
   const metas = STEPS.filter((s, i) => stepOpen(i)).flatMap(s => s.ms.map(m => ({ s, m }))).map(({ s, m }) => { const v = Math.min(m.val(), m.goal), met = msMet(m);
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět.</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = GARDEN_ITEMS.find(x => x.id === S.sell); if (!it) return ''; const dep = GARDEN_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}<img class="gi sloth" src="img/garden/${gardenMood()}.webp" alt="Klíček" style="left:50%;top:80%;width:24%;z-index:80"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět, podržením a tažením ho přesuneš (i Klíčka).</p></div><div class="coin">🪙 <b>${c}</b></div></div>
+    <div class="garden"><img class="gbg" src="img/garden/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = GARDEN_ITEMS.find(x => x.id === S.sell); if (!it) return ''; const dep = GARDEN_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || { x: 50, y: 80 }; return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:24%;z-index:${Math.round(sp.y)}"><img src="img/garden/${gardenMood()}.webp" alt=""></button>`; })()}</div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
+    ${pos && Object.keys(pos).length ? `<p class="note" style="text-align:center;margin:-8px 0 0"><button class="more" data-resetpos="1">Vrátit rozmístění</button></p>` : ''}
     <h3 style="font-size:20px;margin:6px 0 -6px">Obchod</h3>
     ${shop ? `<div class="rgrid">${shop}</div>` : '<p class="note">Zahrada je kompletní. Krása.</p>'}
     <h3 style="font-size:20px;margin:6px 0 -6px">Mety a odměny</h3>
@@ -682,6 +684,32 @@ function ambientStop(fade = 1) {
   setTimeout(() => { a.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { a.master.disconnect(); } catch (e) {} }, fade * 1000 + 100);
 }
 
+// ---------- zahrada: přesouvání podržením ----------
+let dragT = null, dragEl = null, dragId = null, dragMoved = false, dragStart = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-drag]'); if (!el) return;
+  dragStart = { x: e.clientX, y: e.clientY }; dragMoved = false;
+  dragT = setTimeout(() => { dragEl = el; dragId = el.dataset.drag; el.classList.add('lift'); el.setPointerCapture && el.setPointerCapture(e.pointerId); if (navigator.vibrate) navigator.vibrate(15); }, 350);
+});
+document.addEventListener('pointermove', e => {
+  if (dragT && !dragEl && dragStart && Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) > 8) { clearTimeout(dragT); dragT = null; return; }
+  if (!dragEl) return;
+  e.preventDefault(); dragMoved = true;
+  const g = dragEl.closest('.garden').getBoundingClientRect();
+  const x = Math.min(98, Math.max(2, (e.clientX - g.left) / g.width * 100)), y = Math.min(112, Math.max(20, (e.clientY - g.top) / g.height * 100 + 6));
+  dragEl.style.left = x + '%'; dragEl.style.top = y + '%'; dragEl.style.zIndex = Math.round(y) + 100;
+}, { passive: false });
+const endDrag = e => {
+  clearTimeout(dragT); dragT = null;
+  if (!dragEl) return;
+  const el = dragEl, id = dragId; dragEl = null; dragId = null; el.classList.remove('lift');
+  if (dragMoved) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.pos = S.garden.pos || {}; const sc = S.garden.scene || 'path'; S.garden.pos[sc] = S.garden.pos[sc] || {}; S.garden.pos[sc][id] = { x: Math.round(parseFloat(el.style.left) * 10) / 10, y: Math.round(parseFloat(el.style.top) * 10) / 10 }; save(); }
+  suppressClick = true; setTimeout(() => suppressClick = false, 400);
+  render();
+};
+let suppressClick = false;
+document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
+
 // ---------- celebrations ----------
 function afterToggle(id) {
   const lines = [];
@@ -730,7 +758,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -738,7 +766,9 @@ document.addEventListener('click', e => {
     if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
+  if (suppressClick && (ds.sell || ds.drag)) return;
   if (ds.sell) { S.sell = S.sell === ds.sell ? null : ds.sell; render(); return; }
+  if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
   if (ds.sellyes) { const it = GARDEN_ITEMS.find(x => x.id === ds.sellyes); if (it && owned(it.id) && !GARDEN_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
   if (ds.buy) { const it = GARDEN_ITEMS.find(x => x.id === ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
