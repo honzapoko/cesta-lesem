@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_bg" android:orientation="vertical" android:padding="16dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Klíček" android:textColor="#1E2A4A" android:textSize="20sp" android:textStyle="bold"/>
+            <TextView android:id="@+id/w_lead" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Pomalu, ale jistě." android:textColor="#7A6A55" android:textSize="12sp" android:maxLines="2" android:ellipsize="end"/>
+        </LinearLayout>
+        <ImageView android:id="@+id/w_sloth" android:layout_width="84dp" android:layout_height="84dp" android:src="@drawable/widget_sloth" android:scaleType="fitCenter" android:contentDescription="Klíček"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp" android:layout_marginBottom="6dp">
+        <TextView android:id="@+id/w_progress" style="@style/WidgetPill" android:text="–"/>
+        <TextView android:id="@+id/w_streak" style="@style/WidgetPill" android:text="0 dní v řadě"/>
+        <TextView android:id="@+id/w_coins" style="@style/WidgetPill" android:text="🪙 0"/>
+    </LinearLayout>
+        <TextView android:id="@+id/w_t1" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t2" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t3" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t4" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t5" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t6" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t7" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t8" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t9" style="@style/WidgetTask"/>
+        <TextView android:id="@+id/w_t10" style="@style/WidgetTask"/>
+    <TextView android:id="@+id/w_quote" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="" android:textColor="#5E7A4A" android:textSize="12sp" android:textStyle="italic" android:layout_marginTop="8dp" android:maxLines="2" android:ellipsize="end"/>
+</LinearLayout>

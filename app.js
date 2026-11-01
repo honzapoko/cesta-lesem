@@ -18,7 +18,7 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
-const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) native.mirror(); };
+const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
@@ -849,10 +849,25 @@ document.addEventListener('input', e => {
 });
 matchMedia('(min-width: 960px)').addEventListener('change', () => render());
 document.addEventListener('change', e => { if (e.target.id === 'remMorningAt' || e.target.id === 'remEveningAt') { S.remind = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' }; S.remind[e.target.id === 'remMorningAt' ? 'morningAt' : 'eveningAt'] = e.target.value || '07:00'; save(); applyReminders(); } });
+let widgetT = null;
+function pushWidget() {
+  if (!window.native || !native.isNative) return;
+  clearTimeout(widgetT);
+  widgetT = setTimeout(() => {
+    try {
+      const saved = cur; cur = TODAY;
+      const t = visibleTasks().concat(activeTasks()); const done = t.filter(isDoneFor).length;
+      const hour = new Date().getHours(); const mood = homeMood(hour, done, t.length, true);
+      const state = { streak: curRun('les'), done, total: t.length, coins: coins(), lead: moodLead(mood, hour, done, t.length), quote: has('quote') ? QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length] : '', tasks: t.slice(0, 10).map(x => ({ t: x.t, done: isDoneFor(x) })) };
+      cur = saved;
+      native.updateWidget(state);
+    } catch (e) {}
+  }, 300);
+}
 async function applyReminders() { if (!window.native || !native.isNative) return; const r = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' }; const st = await native.schedule(r); if (st !== S.remindState) { S.remindState = st; save(); render(); } }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && iso(new Date()) !== TODAY) { cur = iso(new Date()); render(); } });
 
-(async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); } })();
+(async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); pushWidget(); } })();
 render();
 if (window.cloud) { cloud.onAuth(() => render()); cloud.init().then(u => { if (u) syncAll(); }).catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

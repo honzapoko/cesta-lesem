@@ -46,5 +46,7 @@
   }
   async function openExactSetting() { try { await P().LocalNotifications.changeExactNotificationSetting(); } catch (e) {} }
 
-  window.native = { isNative, restoreFromPrefs, mirror, schedule, openExactSetting };
+  async function updateWidget(state) { try { const W = P().WidgetBridge; if (W) await W.update({ json: JSON.stringify(state) }); } catch (e) {} }
+
+  window.native = { isNative, restoreFromPrefs, mirror, schedule, openExactSetting, updateWidget };
 })();

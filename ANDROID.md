@@ -50,3 +50,12 @@ Samsung uspává aplikace. Pro spolehlivé připomínky: Nastavení → Aplikace
 5. Po 14 dnech: Apply for production access → po schválení Production → nahrát a vydat.
 
 Verze: před každým nahráním zvýšit `versionCode` a `versionName` v `android/app/build.gradle`.
+
+## 7. Widgety
+
+Tři velikosti v nabídce widgetů (podrž prázdné místo na ploše → Widgety → Klíček):
+- **Malý (2×1)**: dnes splněno x/y a dny v řadě.
+- **Střední (4×2)**: 5 úkolů s fajfkami, dny v řadě, věta nálady, Klíček.
+- **Velký (4×4)**: všechny úkoly (až 10), mince, dny v řadě, věta dne, Klíček.
+
+Widget se překreslí po každém uložení v appce a sám každých 30 minut. Ťuknutí kamkoli otevře appku. Kód: `android/app/src/main/java/cz/honzapoko/klicek/KlicekWidget*.java`, vzhled `res/layout/widget_*.xml`.
