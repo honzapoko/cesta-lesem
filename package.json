@@ -1,0 +1,20 @@
+{
+  "name": "klicek",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Klíček – pomalu, ale jistě. Návyky s cílovou čárou.",
+  "scripts": {
+    "build": "node scripts/build-www.mjs",
+    "android": "npm run build && npx cap sync android && npx cap run android",
+    "android:open": "npm run build && npx cap sync android && npx cap open android",
+    "sync": "npm run build && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/preferences": "^8.0.1"
+  }
+}

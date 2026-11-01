@@ -18,7 +18,7 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
-const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); };
+const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) native.mirror(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
@@ -169,7 +169,7 @@ function viewPick() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -619,6 +619,14 @@ function viewMore() {
     h += `<h3 style="font-size:20px">Deník vděčnosti</h3><div class="diary">${days.length ? days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
       return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
   }
+  if (window.native && native.isNative) {
+    const r = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' };
+    h += `<section class="card"><div class="row" style="border-top:0"><div><b>Připomínky</b><span>Klíček ti dá vědět. Žádný tlak, jen pošťouchnutí.</span></div></div>
+      <div class="row"><div><b>Ráno</b><span>Les na tebe čeká</span></div><div style="display:flex;gap:8px;align-items:center"><input type="time" id="remMorningAt" value="${r.morningAt}" ${r.morning ? '' : 'disabled'}><button class="sw ${r.morning ? 'on' : ''}" data-rem="morning" role="switch" aria-checked="${r.morning}" aria-label="Ranní připomínka"></button></div></div>
+      <div class="row"><div><b>Večer</b><span>Zapiš si den</span></div><div style="display:flex;gap:8px;align-items:center"><input type="time" id="remEveningAt" value="${r.eveningAt}" ${r.evening ? '' : 'disabled'}><button class="sw ${r.evening ? 'on' : ''}" data-rem="evening" role="switch" aria-checked="${r.evening}" aria-label="Večerní připomínka"></button></div></div>
+      ${S.remindState === 'inexact' ? `<div style="padding:0 16px 14px"><p class="note" style="margin:0 0 8px">Android může připomínky zpozdit. Povol Klíčkovi přesné budíky a u Samsungu vypni optimalizaci baterie.</p><button class="btn sec" id="remExact">Povolit přesné připomínky</button></div>` : S.remindState === 'denied' ? '<p class="note" style="padding:0 16px 14px;margin:0">Připomínky jsou v nastavení telefonu zakázané. Povol je v Nastavení → Aplikace → Klíček → Oznámení.</p>' : ''}
+    </section>`;
+  }
   h += cloudCard();
   h += `<section class="card">
     ${has('night') ? `<div class="row"><div><b>Noční les</b><span>Tmavý motiv</span></div><button class="sw ${S.theme === 'dark' ? 'on' : ''}" id="themeSw" role="switch" aria-checked="${S.theme === 'dark'}" aria-label="Noční les"></button></div>` : ''}
@@ -783,7 +791,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-rem],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -793,6 +801,8 @@ document.addEventListener('click', e => {
   }
   if (suppressClick && (ds.sell || ds.drag)) return;
   if (ds.sell) { S.sell = S.sell === ds.sell ? null : ds.sell; render(); return; }
+  if (ds.rem) { S.remind = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' }; S.remind[ds.rem] = !S.remind[ds.rem]; save(); applyReminders(); render(); return; }
+  if (t.id === 'remExact') { native.openExactSetting(); return; }
   if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
   if (ds.sellyes) { const it = GARDEN_ITEMS.find(x => x.id === ds.sellyes); if (it && owned(it.id) && !GARDEN_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
@@ -838,8 +848,11 @@ document.addEventListener('input', e => {
   clearTimeout(typeT); typeT = setTimeout(save, 400);
 });
 matchMedia('(min-width: 960px)').addEventListener('change', () => render());
+document.addEventListener('change', e => { if (e.target.id === 'remMorningAt' || e.target.id === 'remEveningAt') { S.remind = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' }; S.remind[e.target.id === 'remMorningAt' ? 'morningAt' : 'eveningAt'] = e.target.value || '07:00'; save(); applyReminders(); } });
+async function applyReminders() { if (!window.native || !native.isNative) return; const r = S.remind || { morning: true, morningAt: '07:00', evening: true, eveningAt: '20:30' }; const st = await native.schedule(r); if (st !== S.remindState) { S.remindState = st; save(); render(); } }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && iso(new Date()) !== TODAY) { cur = iso(new Date()); render(); } });
 
+(async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); } })();
 render();
 if (window.cloud) { cloud.onAuth(() => render()); cloud.init().then(u => { if (u) syncAll(); }).catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

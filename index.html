@@ -245,6 +245,8 @@ h2.sec{font-size:24px}
 .btn{background:linear-gradient(180deg,#F5B654,var(--orange));color:#fff;border-radius:999px;padding:15px 20px;font-weight:800;font-size:17px;width:100%;box-shadow:0 6px 16px rgba(239,162,58,.35);text-align:center}
 .btn.sec{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:none}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
+.row input[type=time]{font:inherit;font-weight:800;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:var(--bg);color:var(--ink)}
+.row input[type=time]:disabled{opacity:.5}
 .row:first-child{border-top:0}
 .row b{font-weight:800}
 .row span{font-size:13px;color:var(--muted);font-weight:600;display:block}
@@ -341,6 +343,7 @@ nav.tabs button.lockd{opacity:.45}
 <canvas id="confetti" hidden></canvas>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <script src="cloud.js"></script>
+<script src="native.js"></script>
 <script src="mascot.js"></script>
 <script src="app.js"></script>
 </body>

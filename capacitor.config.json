@@ -1,0 +1,11 @@
+{
+  "appId": "cz.honzapoko.klicek",
+  "appName": "Klíček",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_klicek", "iconColor": "#EFA23A" },
+    "SplashScreen": { "launchShowDuration": 0 }
+  }
+}
