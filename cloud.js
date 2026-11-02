@@ -30,12 +30,12 @@
     },
     async signIn() {
       if (!ready()) throw new Error('offline');
-      const native = window.native && native.isNative;
+      const isNat = !!(window.native && window.native.isNative);
       // v Android appce: přihlášení proběhne v systémovém prohlížeči a Google se vrátí přes cz.honzapoko.klicek://auth
-      const redirectTo = native ? 'cz.honzapoko.klicek://auth' : location.origin + location.pathname;
-      const { data, error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: !!native } });
+      const redirectTo = isNat ? 'cz.honzapoko.klicek://auth' : location.origin + location.pathname;
+      const { data, error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: isNat } });
       if (error) throw error;
-      if (native && data && data.url) window.open(data.url, '_system');
+      if (isNat && data && data.url) window.open(data.url, '_system');
     },
     // návrat z prohlížeče v nativní appce (volá native.js z App.appUrlOpen)
     async handleDeepLink(url) {
