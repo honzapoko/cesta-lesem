@@ -1045,6 +1045,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && is
 
 (async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); pushWidget(); } })();
 render();
-if (window.cloud) { cloud.onAuth(() => render()); cloud.init().then(u => { if (u) syncAll(); }).catch(() => {}); }
+if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) syncAll(); lastUid = id; }); cloud.init().catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

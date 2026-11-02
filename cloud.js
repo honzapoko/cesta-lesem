@@ -30,9 +30,23 @@
     },
     async signIn() {
       if (!ready()) throw new Error('offline');
-      const redirectTo = location.origin + location.pathname;
-      const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+      const native = window.native && native.isNative;
+      // v Android appce: přihlášení proběhne v systémovém prohlížeči a Google se vrátí přes cz.honzapoko.klicek://auth
+      const redirectTo = native ? 'cz.honzapoko.klicek://auth' : location.origin + location.pathname;
+      const { data, error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: !!native } });
       if (error) throw error;
+      if (native && data && data.url) window.open(data.url, '_system');
+    },
+    // návrat z prohlížeče v nativní appce (volá native.js z App.appUrlOpen)
+    async handleDeepLink(url) {
+      if (!ready()) return false;
+      try {
+        const u = new URL(url); const code = u.searchParams.get('code');
+        if (!code) return false;
+        const { error } = await sb.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+        return true;
+      } catch (e) { console.warn('deep link', e); return false; }
     },
     async signOut() { if (ready()) await sb.auth.signOut(); user = null; emit(); },
     // rows: [{day:'YYYY-MM-DD', data:{}, ts:ms}]

@@ -35,6 +35,7 @@ a pak Run ▶ v Android Studiu, nebo rovnou `npm run android`.
 
 - Připomínky (Více → Připomínky): ráno a večer, nastavitelné časy, přesné alarmy. Při prvním spuštění se appka zeptá na povolení oznámení.
 - Data jsou zrcadlená do nativního úložiště (přežijí vyčištění WebView). Při prvním spuštění nativní appky si data z PWA **nepřenesou** automaticky (jiné úložiště) – použij Více → Stáhnout zálohu v PWA a Obnovit ze zálohy v appce, nebo cloud.
+- Přihlášení přes Google: v appce se otevře systémový prohlížeč, po přihlášení se Google vrátí přes odkaz `cz.honzapoko.klicek://auth` zpět do appky (intent-filter v manifestu). V Supabase musí být tato adresa v Authentication → URL Configuration → Redirect URLs jako `cz.honzapoko.klicek://**`.
 - Vše ostatní (zahrada, cloud, katalog) beze změny.
 
 ## 5. Samsung a připomínky
