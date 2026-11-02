@@ -499,7 +499,7 @@ function coinsEarned() {
   c += Math.floor(bestRun('les') / 7) * 10;
   return c;
 }
-const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((GARDEN_ITEMS.find(i => i.id === id) || { price: 0 }).price), 0);
+const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((itemById(id) || { price: 0 }).price), 0);
 const coins = () => Math.max(0, coinsEarned() - coinsSpent());
 // scény: light = odkud svítí slunce (předměty jsou nasvícené zprava → u scén se sluncem vlevo se zrcadlí)
 const SCENES = [
@@ -562,35 +562,169 @@ const GARDEN_ITEMS = [
   { id: 'waterfall2', t: 'Velký vodopád', price: 150, slot: 's6', w: 28, replaces: 'waterfall' },
   { id: 'bonsai2', t: 'Stoletá borovice', price: 200, slot: 's7', w: 22, replaces: 'lantern2' }
 ];
+// předměty pro další místa; ceny ve 4 hladinách jako zahrada (5–15 / 18–40 / 45–80 / 100+), řetězce přes replaces/needs
+const PLACE_ITEMS = {
+  forest: [
+    { id: 'f-parez', t: 'Pařez', price: 5, slot: 's3', w: 18 },
+    { id: 'f-houby', t: 'Houbová rodinka', price: 6, slot: 's6', w: 12 },
+    { id: 'f-kapradi', t: 'Kapradinový trs', price: 7, slot: 's1', w: 16 },
+    { id: 'f-boruvci', t: 'Borůvčí', price: 8, slot: 's7', w: 12 },
+    { id: 'f-mravenci', t: 'Mravenčí domeček', price: 10, slot: 's4', w: 16 },
+    { id: 'f-lavice', t: 'Lavice z kmene', price: 12, slot: 's8', w: 24, y: 100 },
+    { id: 'f-krmitko', t: 'Krmítko pro ptáky', price: 14, slot: 's2', w: 14, y: 46 },
+    { id: 'f-semenacek', t: 'Semenáček dubu', price: 15, slot: 's5', w: 12 },
+    { id: 'f-ohniste', t: 'Ohniště', price: 18, slot: 's3', w: 20, replaces: 'f-parez' },
+    { id: 'f-budka', t: 'Ptačí budka', price: 20, slot: 's2', w: 14, y: 44, replaces: 'f-krmitko' },
+    { id: 'f-rozcestnik', t: 'Dřevěný rozcestník', price: 22, slot: 's7', w: 12, replaces: 'f-boruvci' },
+    { id: 'f-briza', t: 'Malá bříza', price: 24, slot: 's1', w: 18, replaces: 'f-kapradi' },
+    { id: 'f-zajic', t: 'Zajíc', price: 26, slot: 's6', w: 11, replaces: 'f-houby' },
+    { id: 'f-lucerna', t: 'Lucerna na kůlu', price: 28, slot: 's4', w: 10, y: 58, replaces: 'f-mravenci' },
+    { id: 'f-stromek', t: 'Mladý dub', price: 30, slot: 's5', w: 20, replaces: 'f-semenacek', needs: 'f-semenacek' },
+    { id: 'f-potucek', t: 'Malý potůček', price: 35, slot: 's8', w: 28, y: 100, replaces: 'f-lavice' },
+    { id: 'f-skalka', t: 'Skalka s vřesem', price: 40, slot: 's6', w: 18, replaces: 'f-zajic' },
+    { id: 'f-houpacka', t: 'Houpačka z lana', price: 45, slot: 's1', w: 18, x: 14, y: 66, replaces: 'f-briza' },
+    { id: 'f-drevnik', t: 'Dřevník', price: 50, slot: 's4', w: 20, replaces: 'f-lucerna' },
+    { id: 'f-stan', t: 'Stan', price: 55, slot: 's3', w: 24, replaces: 'f-ohniste' },
+    { id: 'f-sova', t: 'Sova na větvi', price: 60, slot: 's2', w: 14, y: 44, replaces: 'f-budka' },
+    { id: 'f-mustek', t: 'Kamenný můstek', price: 65, slot: 's8', w: 28, y: 100, replaces: 'f-potucek', needs: 'f-potucek' },
+    { id: 'f-nora', t: 'Liščí nora', price: 75, slot: 's7', w: 16, replaces: 'f-rozcestnik' },
+    { id: 'f-dub', t: 'Velký dub', price: 100, slot: 's5', w: 32, replaces: 'f-stromek', needs: 'f-stromek' },
+    { id: 'f-jezirko', t: 'Jezírko s lekníny', price: 120, slot: 's3', w: 30, replaces: 'f-stan' },
+    { id: 'f-srnka', t: 'Srnka', price: 150, slot: 's6', w: 16, replaces: 'f-skalka' }
+  ],
+  cabin: [
+    { id: 'c-hrnek', t: 'Hrnek čaje na stolku', price: 5, slot: 's6', w: 10 },
+    { id: 'c-kniha', t: 'Kniha', price: 6, slot: 's7', w: 9 },
+    { id: 'c-svicky', t: 'Svíčky', price: 7, slot: 's2', w: 10 },
+    { id: 'c-drevo', t: 'Hromada dřeva', price: 8, slot: 's4', w: 18 },
+    { id: 'c-zvonek', t: 'Zvonek', price: 10, slot: 's1', w: 8, y: 48 },
+    { id: 'c-krmitko', t: 'Ptačí krmítko na zábradlí', price: 12, slot: 's5', w: 14 },
+    { id: 'c-koberec', t: 'Kožešinový koberec', price: 12, slot: 's8', w: 26, y: 100 },
+    { id: 'c-lampa', t: 'Lampa', price: 15, slot: 's2', w: 9, replaces: 'c-svicky' },
+    { id: 'c-stul', t: 'Dřevěný stůl', price: 18, slot: 's3', w: 20 },
+    { id: 'c-kytara', t: 'Kytara', price: 20, slot: 's7', w: 10, replaces: 'c-kniha' },
+    { id: 'c-lyze', t: 'Lyže u zdi', price: 22, slot: 's1', w: 10, replaces: 'c-zvonek' },
+    { id: 'c-sane', t: 'Sáně', price: 24, slot: 's4', w: 18, replaces: 'c-drevo' },
+    { id: 'c-kreslo', t: 'Křeslo s dekou', price: 28, slot: 's6', w: 18, replaces: 'c-hrnek' },
+    { id: 'c-snehulak', t: 'Sněhulák', price: 30, slot: 's5', w: 12, replaces: 'c-krmitko' },
+    { id: 'c-kamna', t: 'Kamna', price: 35, slot: 's3', w: 16, replaces: 'c-stul' },
+    { id: 'c-kriz', t: 'Horský kříž', price: 40, slot: 's2', w: 10, y: 40, replaces: 'c-lampa' },
+    { id: 'c-koza', t: 'Koza', price: 45, slot: 's5', w: 14, replaces: 'c-snehulak' },
+    { id: 'c-pes', t: 'Pes u kamen', price: 50, slot: 's7', w: 14, replaces: 'c-kytara' },
+    { id: 'c-okno', t: 'Okno s výhledem', price: 60, slot: 's1', w: 18, y: 42, replaces: 'c-lyze' },
+    { id: 'c-krb', t: 'Krb', price: 70, slot: 's3', w: 22, replaces: 'c-kamna', needs: 'c-kamna' },
+    { id: 'c-lucerna', t: 'Hvězdná lucerna', price: 100, slot: 's2', w: 9, y: 40, replaces: 'c-kriz' },
+    { id: 'c-terasa', t: 'Terasa s lehátkem', price: 130, slot: 's8', w: 32, y: 100, replaces: 'c-koberec' }
+  ],
+  beach: [
+    { id: 'b-musle', t: 'Mušle', price: 5, slot: 's6', w: 9 },
+    { id: 'b-hvezdice', t: 'Mořská hvězdice', price: 6, slot: 's7', w: 8 },
+    { id: 'b-napoj', t: 'Kokosový nápoj', price: 7, slot: 's1', w: 8 },
+    { id: 'b-krab', t: 'Krab', price: 8, slot: 's4', w: 10 },
+    { id: 'b-bojka', t: 'Bójka', price: 10, slot: 's5', w: 7, y: 50 },
+    { id: 'b-hrad', t: 'Hrad z písku', price: 12, slot: 's3', w: 18 },
+    { id: 'b-racek', t: 'Racek', price: 12, slot: 's2', w: 10 },
+    { id: 'b-snorchl', t: 'Šnorchl a ploutve', price: 15, slot: 's8', w: 18, y: 100 },
+    { id: 'b-deka', t: 'Deka a koš', price: 18, slot: 's8', w: 24, y: 100, replaces: 'b-snorchl' },
+    { id: 'b-slunecnik', t: 'Slunečník', price: 20, slot: 's1', w: 18, replaces: 'b-napoj' },
+    { id: 'b-majak1', t: 'Malý maják', price: 22, slot: 's5', w: 9, y: 50, replaces: 'b-bojka' },
+    { id: 'b-lehatko', t: 'Lehátko', price: 24, slot: 's4', w: 20, replaces: 'b-krab' },
+    { id: 'b-surf', t: 'Surf', price: 26, slot: 's7', w: 10, replaces: 'b-hvezdice' },
+    { id: 'b-zelva', t: 'Želva', price: 30, slot: 's6', w: 14, replaces: 'b-musle' },
+    { id: 'b-ohen', t: 'Oheň na pláži', price: 35, slot: 's3', w: 18, replaces: 'b-hrad' },
+    { id: 'b-majak2', t: 'Střední maják', price: 40, slot: 's5', w: 12, y: 50, replaces: 'b-majak1', needs: 'b-majak1' },
+    { id: 'b-kajak', t: 'Kajak', price: 45, slot: 's7', w: 20, replaces: 'b-surf' },
+    { id: 'b-houpaci', t: 'Houpací síť', price: 50, slot: 's1', w: 24, replaces: 'b-slunecnik' },
+    { id: 'b-volejbal', t: 'Plážový volejbal', price: 55, slot: 's8', w: 28, y: 100, replaces: 'b-deka' },
+    { id: 'b-molo', t: 'Molo', price: 60, slot: 's2', w: 24, replaces: 'b-racek' },
+    { id: 'b-palma', t: 'Kokosová palma', price: 70, slot: 's4', w: 20, y: 80, replaces: 'b-lehatko' },
+    { id: 'b-bar', t: 'Dřevěný bar', price: 100, slot: 's3', w: 24, replaces: 'b-ohen' },
+    { id: 'b-majak3', t: 'Velký maják', price: 120, slot: 's5', w: 16, y: 50, replaces: 'b-majak2', needs: 'b-majak2' },
+    { id: 'b-plachetnice', t: 'Plachetnice v dálce', price: 150, slot: 's2', w: 14, y: 44, replaces: 'b-molo' }
+  ],
+  observatory: [
+    { id: 'o-kompas', t: 'Kompas', price: 5, slot: 's7', w: 8 },
+    { id: 'o-denik', t: 'Hvězdářský deník', price: 6, slot: 's6', w: 9 },
+    { id: 'o-lucerna', t: 'Lucerna', price: 7, slot: 's1', w: 9 },
+    { id: 'o-kamen', t: 'Kámen na sezení', price: 8, slot: 's4', w: 16 },
+    { id: 'o-polstare', t: 'Polštáře', price: 10, slot: 's8', w: 20, y: 100 },
+    { id: 'o-deka', t: 'Deka a termoska', price: 12, slot: 's3', w: 16 },
+    { id: 'o-mapa', t: 'Hvězdná mapa', price: 14, slot: 's2', w: 14 },
+    { id: 'o-kopule1', t: 'Malé planetárium', price: 15, slot: 's5', w: 12 },
+    { id: 'o-ohynek', t: 'Ohýnek', price: 18, slot: 's3', w: 18, replaces: 'o-deka' },
+    { id: 'o-kabat', t: 'Teplý kabát na věšáku', price: 20, slot: 's1', w: 10, replaces: 'o-lucerna' },
+    { id: 'o-astronaut', t: 'Astronaut hračka', price: 22, slot: 's7', w: 9, replaces: 'o-kompas' },
+    { id: 'o-hodiny', t: 'Kyvadlové hodiny', price: 25, slot: 's6', w: 9, replaces: 'o-denik' },
+    { id: 'o-dalekohled', t: 'Dalekohled', price: 30, slot: 's4', w: 18, replaces: 'o-kamen' },
+    { id: 'o-kopule2', t: 'Planetárium', price: 32, slot: 's5', w: 18, replaces: 'o-kopule1', needs: 'o-kopule1' },
+    { id: 'o-stan', t: 'Stan', price: 35, slot: 's8', w: 26, y: 100, replaces: 'o-polstare' },
+    { id: 'o-mlhovina', t: 'Mlhovina v rámu', price: 40, slot: 's2', w: 14, replaces: 'o-mapa' },
+    { id: 'o-sova', t: 'Sova', price: 45, slot: 's1', w: 12, replaces: 'o-kabat' },
+    { id: 'o-netopyr', t: 'Netopýr', price: 50, slot: 's7', w: 12, y: 46, replaces: 'o-astronaut' },
+    { id: 'o-meteorit', t: 'Meteorit', price: 60, slot: 's6', w: 14, replaces: 'o-hodiny' },
+    { id: 'o-kopule3', t: 'Velká observatoř', price: 100, slot: 's5', w: 26, replaces: 'o-kopule2', needs: 'o-kopule2' },
+    { id: 'o-mesic', t: 'Měsíc v křesle', price: 120, slot: 's2', w: 18, y: 40, replaces: 'o-mlhovina' },
+    { id: 'o-hvezda', t: 'Padající hvězda', price: 150, slot: 's1', w: 20, y: 22, replaces: 'o-sova' }
+  ],
+  kitchen: [
+    { id: 'k-chleb', t: 'Chléb', price: 5, slot: 's6', w: 10 },
+    { id: 'k-kakao', t: 'Kakao', price: 6, slot: 's7', w: 7 },
+    { id: 'k-konvice', t: 'Konvice', price: 7, slot: 's1', w: 10 },
+    { id: 'k-bylinky', t: 'Bylinky v květináči', price: 8, slot: 's2', w: 10 },
+    { id: 'k-ovoce', t: 'Mísa s ovocem', price: 10, slot: 's4', w: 14 },
+    { id: 'k-kalendar', t: 'Kalendář na zdi', price: 12, slot: 's2', w: 9, y: 30 },
+    { id: 'k-vafle', t: 'Vafle', price: 12, slot: 's3', w: 12 },
+    { id: 'k-stul2', t: 'Stůl pro dva', price: 15, slot: 's5', w: 16 },
+    { id: 'k-kucharka', t: 'Kuchařka', price: 18, slot: 's6', w: 12, replaces: 'k-chleb' },
+    { id: 'k-kvetina', t: 'Květina ve váze', price: 20, slot: 's7', w: 9, replaces: 'k-kakao' },
+    { id: 'k-koreni', t: 'Polička s kořením', price: 22, slot: 's1', w: 14, y: 36, replaces: 'k-konvice' },
+    { id: 'k-radio', t: 'Rádio', price: 24, slot: 's4', w: 12, replaces: 'k-ovoce' },
+    { id: 'k-hrnec', t: 'Hrnec na kamnech', price: 26, slot: 's3', w: 14, replaces: 'k-vafle' },
+    { id: 'k-stul4', t: 'Stůl pro čtyři', price: 30, slot: 's5', w: 20, replaces: 'k-stul2', needs: 'k-stul2' },
+    { id: 'k-zavareniny', t: 'Zavařeniny', price: 32, slot: 's2', w: 12, replaces: 'k-bylinky' },
+    { id: 'k-nastenka', t: 'Nástěnka s obrázky dětí', price: 35, slot: 's2', w: 14, y: 30, replaces: 'k-kalendar' },
+    { id: 'k-kocka', t: 'Kočka na židli', price: 40, slot: 's6', w: 14, replaces: 'k-kucharka' },
+    { id: 'k-zaves', t: 'Závěs', price: 45, slot: 's1', w: 16, y: 36, replaces: 'k-koreni' },
+    { id: 'k-lampa', t: 'Lampa nad stolem', price: 50, slot: 's5', w: 10, y: 22 },
+    { id: 'k-pes', t: 'Pes pod stolem', price: 60, slot: 's8', w: 20, y: 100, x: 70 },
+    { id: 'k-stul6', t: 'Stůl pro šest', price: 100, slot: 's5', w: 26, replaces: 'k-stul4', needs: 'k-stul4' },
+    { id: 'k-dort', t: 'Dort se svíčkami', price: 120, slot: 's3', w: 14, replaces: 'k-hrnec' }
+  ]
+};
+Object.entries(PLACE_ITEMS).forEach(([loc, arr]) => arr.forEach(it => { it.loc = loc; }));
+const ALL_ITEMS = [...GARDEN_ITEMS, ...Object.values(PLACE_ITEMS).flat()];
+const itemById = id => ALL_ITEMS.find(i => i.id === id);
+const itemImg = it => `img/${it.loc ? 'places/' + it.loc : 'garden'}/${it.id}.webp`;
 const owned = id => !!(S.garden && S.garden.owned && S.garden.owned.includes(id));
 function gardenMood() { return 'sloth-meditate'; }
 function viewGarden() {
   S.garden = S.garden || { owned: [], scene: 'path' };
-  S.garden.owned = (S.garden.owned || []).filter(id => GARDEN_ITEMS.some(i => i.id === id));
+  S.garden.owned = (S.garden.owned || []).filter(id => !!itemById(id));
   // nově odemčená místa si zapamatuj (podmínka může později zase přestat platit, místo zůstane)
   PLACES.forEach(p => { if (p.ok() && !placeOpen(p)) { S.garden.unlocked = S.garden.unlocked || []; S.garden.unlocked.push(p.id); save(); } });
   let scene = SCENES.find(x => x.id === S.garden.scene) || PLACES.find(x => x.id === S.garden.scene && placeOpen(x)) || SCENES[0];
   const place = PLACES.includes(scene);
   const flip = scene.light === 'left';
   // viditelné předměty: vlastněné, které nejsou nahrazené vlastněným nástupcem (v dalších místech zatím předměty nejsou)
-  const vis = place ? [] : GARDEN_ITEMS.filter(it => owned(it.id) && !GARDEN_ITEMS.some(o => o.replaces === it.id && owned(o.id)));
+  const ITEMS = place ? PLACE_ITEMS[scene.id] : GARDEN_ITEMS;
+  const vis = ITEMS.filter(it => owned(it.id) && !ITEMS.some(o => o.replaces === it.id && owned(o.id)));
   const pos = (S.garden.pos && S.garden.pos[scene.id]) || {};
-  const placed = vis.map(it => { const sl = SLOTS[it.slot]; const pp = pos[it.id]; const x = pp ? pp.x : (flip ? 100 - sl.x : sl.x); const y = pp ? pp.y : (it.y ?? sl.y); const w = it.w || sl.w;
-    return `<button class="gi" data-sell="${it.id}" data-drag="${it.id}" draggable="false" aria-label="${esc(it.t)}, prodat za ${it.price}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)}"><img draggable="false" src="img/garden/${it.id}.webp" alt="" style="${flip ? 'transform:scaleX(-1)' : ''}"></button>`; }).join('');
+  const placed = vis.map(it => { const sl = SLOTS[it.slot]; const pp = pos[it.id]; const x = pp ? pp.x : (it.x ?? (flip ? 100 - sl.x : sl.x)); const y = pp ? pp.y : (it.y ?? sl.y); const w = it.w || sl.w;
+    return `<button class="gi" data-sell="${it.id}" data-drag="${it.id}" draggable="false" aria-label="${esc(it.t)}, prodat za ${it.price}" style="left:${x}%;top:${y}%;width:${w}%;z-index:${Math.round(y)}"><img draggable="false" src="${itemImg(it)}" alt="" style="${flip ? 'transform:scaleX(-1)' : ''}"></button>`; }).join('');
   const c = coins();
-  const shop = GARDEN_ITEMS.filter(it => !owned(it.id) && (!it.needs || owned(it.needs))).map(it => `<div class="rcard shop ${c >= it.price ? '' : 'lockd'}">${it.price >= 100 ? '<i class="rare">vzácné</i>' : ''}<img src="img/garden/${it.id}.webp" alt=""><b>${esc(it.t)}</b><span>${it.replaces ? 'Nahradí: ' + esc((GARDEN_ITEMS.find(o => o.id === it.replaces) || {}).t || '') : ''}</span><button class="btn ${c >= it.price ? '' : 'sec'}" data-buy="${it.id}" ${c >= it.price ? '' : 'disabled'}>🪙 ${it.price}</button></div>`).join('');
+  const shop = ITEMS.filter(it => !owned(it.id) && (!it.needs || owned(it.needs))).map(it => `<div class="rcard shop ${c >= it.price ? '' : 'lockd'}">${it.price >= 100 ? '<i class="rare">vzácné</i>' : ''}<img src="${itemImg(it)}" alt=""><b>${esc(it.t)}</b><span>${it.replaces ? 'Nahradí: ' + esc((itemById(it.replaces) || {}).t || '') : ''}</span><button class="btn ${c >= it.price ? '' : 'sec'}" data-buy="${it.id}" ${c >= it.price ? '' : 'disabled'}>🪙 ${it.price}</button></div>`).join('');
   const metas = STEPS.filter((s, i) => stepOpen(i)).flatMap(s => s.ms.map(m => ({ s, m }))).map(({ s, m }) => { const v = Math.min(m.val(), m.goal), met = msMet(m);
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět, krátkým podržením a tažením ho přesuneš (i Klíčka).</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = GARDEN_ITEMS.find(x => x.id === S.sell); if (!it) return ''; const dep = GARDEN_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || { x: 50, y: 80 }; return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:24%;z-index:${Math.round(sp.y)}"><img draggable="false" src="img/garden/${gardenMood()}.webp" alt=""></button>`; })()}</div>
+    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = itemById(S.sell); if (!it) return ''; const dep = ALL_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || { x: 50, y: 80 }; return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:24%;z-index:${Math.round(sp.y)}"><img draggable="false" src="img/garden/${gardenMood()}.webp" alt=""></button>`; })()}</div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
     <p class="note" style="text-align:center;margin:-6px 0 -4px">Další místa</p>
     <div class="seg scenes">${PLACES.map(x => { const o = placeOpen(x); return `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''} ${o ? '' : 'lockd'}" aria-label="${esc(x.t)}${o ? '' : ', zamčeno'}"><img src="img/places/${x.id}-thumb.webp" alt="">${o ? '' : '<i>🔒</i>'}</button>`; }).join('')}</div>
-    ${S.placeHint ? (() => { const p = PLACES.find(x => x.id === S.placeHint); return p ? `<p class="note" style="text-align:center;margin:-4px 0 0"><b>${esc(p.t)}</b> · ${esc(p.cond)}</p>` : ''; })() : (place ? `<p class="note" style="text-align:center;margin:-4px 0 0"><b>${esc(scene.t)}</b> · předměty pro tohle místo přijdou v další verzi.</p>` : '')}
+    ${S.placeHint ? (() => { const p = PLACES.find(x => x.id === S.placeHint); return p ? `<p class="note" style="text-align:center;margin:-4px 0 0"><b>${esc(p.t)}</b> · ${esc(p.cond)}</p>` : ''; })() : ''}
     ${pos && Object.keys(pos).length ? `<p class="note" style="text-align:center;margin:-8px 0 0"><button class="more" data-resetpos="1">Vrátit rozmístění</button></p>` : ''}
     <h3 style="font-size:20px;margin:6px 0 -6px">Obchod</h3>
-    ${place ? '<p class="note">Obchod patří k zenové zahradě. Předměty pro další místa připravuju.</p>' : shop ? `<div class="rgrid">${shop}</div>` : '<p class="note">Zahrada je kompletní. Krása.</p>'}
+    ${shop ? `<div class="rgrid">${shop}</div>` : `<p class="note">${place ? esc(scene.t) + ' je kompletní.' : 'Zahrada je kompletní.'} Krása.</p>`}
     <h3 style="font-size:20px;margin:6px 0 -6px">Mety a odměny</h3>
     <section class="card" style="padding:4px 14px 12px">${metas}</section>
     <p class="note">Mince: 1 za úkol, 3 za ranní les, +3 za den se vším hotovým, +10 za každých 7 dní lesa v řadě.</p>
@@ -846,8 +980,8 @@ document.addEventListener('click', e => {
   if (t.id === 'remExact') { native.openExactSetting(); return; }
   if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
-  if (ds.sellyes) { const it = GARDEN_ITEMS.find(x => x.id === ds.sellyes); if (it && owned(it.id) && !GARDEN_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
-  if (ds.buy) { const it = GARDEN_ITEMS.find(x => x.id === ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
+  if (ds.sellyes) { const it = itemById(ds.sellyes); if (it && owned(it.id) && !ALL_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
+  if (ds.buy) { const it = itemById(ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
   if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; const p = PLACES.find(x => x.id === ds.scene); if (p && !placeOpen(p)) { S.placeHint = p.id; render(); return; } S.placeHint = null; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
   if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }

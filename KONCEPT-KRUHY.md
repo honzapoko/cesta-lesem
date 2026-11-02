@@ -87,7 +87,7 @@ Styl drž stejný u všech: **„cute 3D render, soft Pixar-like lighting, warm 
 
 Kruhy vyžadují cloud (Supabase, tabulky `circles`, `members`, `events`, `bets`) a přihlášení přes Google – to je první podmínka. Pořadí:
 
-1. **Teď (bez cloudu):** 100 aktivit ✔ (všech 103 má vlastní ikonu ✔), pozadí všech 5 lokalit ✔ (v Zahradě pod „Další místa“, odemykání podle tabulky výše; pláž a kuchyně čekají na Kruhy), avatary pro Kruh ✔ (`img/avatars/`), **chybí**: předměty do lokalit (zadání B–F) a lenochod v lokalitách (zadání G).
+1. **Teď (bez cloudu):** 100 aktivit ✔ (všech 103 má vlastní ikonu ✔), pozadí všech 5 lokalit ✔ (v Zahradě pod „Další místa“, odemykání podle tabulky výše; pláž a kuchyně čekají na Kruhy), avatary pro Kruh ✔ (`img/avatars/`), předměty ve všech 5 lokalitách ✔ (116 ks, `img/places/<lokalita>/`, ceny ve 4 hladinách, řetězce dub/maják/stůl/planetárium), **chybí**: lenochod v lokalitách (zadání G).
 2. **Po obnovení Supabase + Google OAuth:** účty, Kruh (kód, nástěnka, palce, oslavy), notifikace z kruhu přes Supabase Realtime.
 3. **Pak:** sázky, společné výzvy, tituly, lokality 4–6.
 
