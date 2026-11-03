@@ -75,12 +75,13 @@ create policy nudges_select on public.nudges for select to authenticated using (
 -- založení kruhu: vrátí kód (6 znaků)
 create or replace function public.create_circle(p_name text) returns table (id uuid, code text, name text)
 language plpgsql security definer set search_path = public as $$
-declare v_code text; v_id uuid; v_try int := 0;
+declare v_code text; v_id uuid; v_try int := 0; v_alpha text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; i int;
 begin
   if auth.uid() is null then raise exception 'not signed in'; end if;
   if (select count(*) from public.members where user_id = auth.uid()) >= 5 then raise exception 'too many circles'; end if;
   loop
-    v_code := upper(substr(translate(encode(gen_random_bytes(6), 'base64'), '+/=0OI1l', 'ABCDEFGH'), 1, 6));
+    v_code := '';
+    for i in 1..6 loop v_code := v_code || substr(v_alpha, 1 + floor(random() * length(v_alpha))::int, 1); end loop;
     exit when not exists (select 1 from public.circles c where c.code = v_code);
     v_try := v_try + 1; if v_try > 20 then raise exception 'code'; end if;
   end loop;
