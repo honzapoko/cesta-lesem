@@ -128,4 +128,4 @@ language sql security definer stable set search_path = public as $$
 $$;
 
 grant execute on function public.create_circle(text), public.join_circle(text), public.send_nudge(uuid, uuid, text), public.nudge_coins(), public.my_circles(), public.same_circle(uuid) to authenticated;
-revoke execute on function public.create_circle(text), public.join_circle(text), public.send_nudge(uuid, uuid, text), public.nudge_coins() from anon;
+revoke execute on function public.create_circle(text), public.join_circle(text), public.send_nudge(uuid, uuid, text), public.nudge_coins(), public.my_circles(), public.same_circle(uuid) from public, anon;
