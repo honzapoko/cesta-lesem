@@ -23,7 +23,7 @@ Kruh je malá skupina 2–8 lidí, kteří si navzájem drží palce. Není to �
 | Společná výzva | „Všichni 5 dní za sebou procházka“ → po splnění každý dostane společnou odměnu (vzácný předmět do lokality). |
 | Oslava | Když někdo dokončí sezónu nebo metu, kruh dostane oznámení s konfetami a tlačítkem Pogratulovat. |
 
-Co kruh **neumí** (záměrně): hodnotit, komentovat volným textem (děti), zobrazovat žebříček, vidět poznámky/deník/spánek (soukromé).
+Co kruh **neumí** (záměrně): hodnotit, zobrazovat žebříček, vidět poznámky/deník/spánek (soukromé), posílat soukromé zprávy. Vzkazy (max 160 znaků) ano, ale vždy viditelné celému kruhu – rodič vidí, co si děti píší; smazat může autor nebo zakladatel kruhu.
 
 ## 3. Ekonomika podpory
 

@@ -17,19 +17,25 @@
       const c = await s.from('circles').select('id,code,name,owner,created_at').order('created_at'); throwIf(c.error);
       const ids = (c.data || []).map(x => x.id);
       if (!ids.length) return { circles: [], members: [], status: {}, nudges: [] };
-      const [m, st, nd] = await Promise.all([
+      const [m, st, nd, po] = await Promise.all([
         s.from('members').select('circle_id,user_id,joined_at').in('circle_id', ids),
         s.from('status').select('user_id,nick,avatar,day,done,total,streak,mood,updated_at'),
-        s.from('nudges').select('id,circle_id,from_user,to_user,kind,day,created_at').gte('day', new Date(Date.now() - 864e5).toISOString().slice(0, 10)).order('created_at', { ascending: false }).limit(200)
+        s.from('nudges').select('id,circle_id,from_user,to_user,kind,day,created_at').gte('day', new Date(Date.now() - 864e5).toISOString().slice(0, 10)).order('created_at', { ascending: false }).limit(200),
+        s.from('posts').select('id,circle_id,user_id,to_user,text,created_at').order('created_at', { ascending: false }).limit(120)
       ]);
       throwIf(m.error); throwIf(st.error); throwIf(nd.error);
+      // vzkazy jsou v2 – když tabulka ještě není, kruh funguje bez nich
+      const posts = po.error ? null : (po.data || []);
       const status = {}; (st.data || []).forEach(r => { status[r.user_id] = r; });
-      return { circles: c.data || [], members: m.data || [], status, nudges: nd.data || [] };
+      return { circles: c.data || [], members: m.data || [], status, nudges: nd.data || [], posts };
     },
     async create(name) { const s = sb(); const { data, error } = await s.rpc('create_circle', { p_name: name }); throwIf(error); return Array.isArray(data) ? data[0] : data; },
     async join(code) { const s = sb(); const { data, error } = await s.rpc('join_circle', { p_code: code }); throwIf(error); return Array.isArray(data) ? data[0] : data; },
     async leave(circleId) { const s = sb(); const { error } = await s.from('members').delete().eq('circle_id', circleId).eq('user_id', uid()); throwIf(error); },
     async rename(circleId, name) { const s = sb(); const { error } = await s.from('circles').update({ name }).eq('id', circleId); throwIf(error); },
+    async post(circleId, text, toUser) { const s = sb(); const row = { circle_id: circleId, user_id: uid(), text: String(text).trim().slice(0, 160) }; if (toUser) row.to_user = toUser; const { error } = await s.from('posts').insert(row); throwIf(error); },
+    async delPost(id) { const s = sb(); const { error } = await s.from('posts').delete().eq('id', id); throwIf(error); },
+    QUICK: ['Držím ti palce 💪', 'Jsi borec! 🎉', 'Zítra je taky den 🌱', 'Jdeme na to spolu 🦥', 'Díky za dnešek ❤️'],
     async nudge(circleId, toUser, kind) { const s = sb(); const { data, error } = await s.rpc('send_nudge', { p_circle: circleId, p_to: toUser, p_kind: kind || 'palec' }); throwIf(error); return data; },
     // můj stav dne (jen sdílené aktivity, počty, nálada) – voláno po každém uložení
     async pushStatus(st) {

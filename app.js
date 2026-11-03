@@ -858,6 +858,11 @@ function viewCircle() {
       <p class="note" style="margin:2px 0 10px">${mem.length} ${plural(mem.length, 'člen', 'členové', 'členů')} · kód pošli tomu, koho chceš přibrat (max 8).</p>
       ${rows}
       ${mine.length ? `<div class="gotbox"><b>Dnes ti drží palce</b>${mine.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
+      ${(() => { if (!data.posts) return '<p class="note" style="margin:10px 0 0">Vzkazy budou fungovat po spuštění supabase/circles_v2_posts.sql.</p>'; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Klíček')}</option>`).join('');
+        return `<div class="posts"><b class="plab">Vzkazy</b>${ps.length ? ps.map(p => { const st = data.status[p.user_id] || {}; const to = p.to_user ? (data.status[p.to_user] || {}).nick : ''; const own = p.user_id === myId || c.owner === myId; const d = new Date(p.created_at); const when = d.toISOString().slice(0, 10) === TODAY ? d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : `${d.getDate()}. ${d.getMonth() + 1}.`;
+          return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Klíček')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
+          <div class="quick">${circle.QUICK.map(q => `<button data-quick="${esc(q)}" data-cid="${c.id}">${esc(q)}</button>`).join('')}</div>
+          <div class="pform" data-cid="${c.id}"><select class="inp ptо" data-pto style="max-width:38%"><option value="">Všem</option>${memberOpts}</select><input class="inp ptext" maxlength="160" placeholder="Napiš vzkaz…" style="flex:1"><button class="btn psend" data-post="${c.id}" style="width:auto;padding:10px 14px">Poslat</button></div></div>`; })()}
       <div style="display:flex;gap:8px;margin-top:10px"><button class="more" data-share-code="${esc(c.code)}">Sdílet kód</button><button class="more" data-leave="${c.id}" style="margin-left:auto;color:var(--muted)">Opustit kruh</button></div></section>`;
   }
   // založit / připojit
@@ -1054,7 +1059,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1068,6 +1073,9 @@ document.addEventListener('click', e => {
   if (ds.remch) { native.openChannelSettings(ds.remch); return; }
   if (t.id === 'remExact') { native.openExactSetting(); return; }
 
+  if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
+  if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
+  if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
   if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
   if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }
   if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }
@@ -1142,6 +1150,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && is
 
 (async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); pushWidget(); } })();
 render();
+app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ptext')) { e.preventDefault(); const b = e.target.closest('.pform').querySelector('.psend'); if (b) b.click(); } });
 app.addEventListener('change', e => { if (e.target && e.target.id === 'menick') { S.me = S.me || {}; S.me.nick = e.target.value.trim().slice(0, 24); save(); } });
 if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) { syncAll(); circleRefresh(true); } lastUid = id; }); cloud.init().catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
