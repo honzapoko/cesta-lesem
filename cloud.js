@@ -18,6 +18,7 @@
   window.cloud = {
     available: () => ready(),
     user: () => user,
+    sb: () => (ready() ? sb : null),
     onAuth(f) { listeners.push(f); },
     async init() {
       if (!ready()) return null;

@@ -18,7 +18,7 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
-const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } };
+const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
@@ -201,7 +201,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -318,6 +318,7 @@ const I = {
     path: '<svg viewBox="0 0 24 24"><path d="M12 21v-7M12 14c-4 0-7-3-7-8 4 0 7 2 7 8zm0 0c4 0 7-3 7-8-4 0-7 2-7 8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     stats: '<svg viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+    circle: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c.8-3.5 3.3-5.5 6.5-5.5s5.7 2 6.5 5.5M15 15.5c2.6 0 4.5 1.3 5.5 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
   }
 };
@@ -355,15 +356,16 @@ function applyTheme() {
 function render() {
   const t = iso(new Date()); if (t !== TODAY) { TODAY = t; if (cur > TODAY) cur = TODAY; }
   applyTheme();
-  const views = { home: viewHome, path: viewGarden, calendar: viewCalendar, stats: viewStats, more: viewMore, pick: viewPick };
+  const views = { home: viewHome, path: viewGarden, calendar: viewCalendar, stats: viewStats, circle: viewCircle, more: viewMore, pick: viewPick };
   app.innerHTML = views[tab]();
   renderTabs();
   renderSide();
   if (tab === 'more') bindTimer();
+  if (tab === 'circle') circleRefresh();
 }
 
 function renderTabs() {
-  const T = [['home', 'Domů'], ['path', 'Zahrada'], ['calendar', 'Kalendář', 'calendar'], ['stats', 'Statistiky', 'stats'], ['more', 'Více']];
+  const T = [['home', 'Domů'], ['path', 'Zahrada'], ['calendar', 'Kalendář', 'calendar'], ['stats', 'Statistiky', 'stats'], ['circle', 'Kruh'], ['more', 'Více']];
   document.getElementById('tabs').innerHTML = T.map(([id, l, req]) => {
     const locked = req && !has(req);
     return `<button data-tab="${id}" class="${tab === id ? 'on' : ''} ${locked ? 'lockd' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${locked ? I.lock : I.tabs[id]}<span>${l}</span></button>`;
@@ -497,6 +499,7 @@ function coinsEarned() {
     if (n && S.fullDays && S.fullDays[day]) c += 3;
   }
   c += Math.floor(bestRun('les') / 7) * 10;
+  if (S.social && S.social.coins) c += (S.social.coins.sent || 0) + (S.social.coins.received || 0);
   return c;
 }
 const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((itemById(id) || { price: 0 }).price), 0);
@@ -779,6 +782,92 @@ function levelCard(lv) {
 let timerMin = [5, 10, 20].includes(S.timerMin) ? S.timerMin : 5, timerLeft = timerMin * 60, timerRun = null, wake = null;
 const SOUNDS = [['none', 'Ticho'], ['forest', 'Les'], ['water', 'Voda'], ['rain', 'Déšť']];
 let timerSnd = SOUNDS.some(x => x[0] === S.timerSnd) ? S.timerSnd : 'none';
+
+// ---------- Kruh (KONCEPT-KRUHY.md) ----------
+// S.share = id aktivit, které ostatní v kruhu vidí (výchozí: nic). S.me = { nick, avatar }. S.social = cache ze serveru.
+const shareable = () => visibleTasks().concat(activeTasks()).filter(t => t.kind !== 'once');
+function sharedTasks() { const sh = S.share || []; return shareable().filter(t => sh.includes(t.id)); }
+function sharedStreak(ts) {
+  if (!ts.length) return 0; const saved = cur; let n = 0;
+  const full = d => { cur = d; const ok = ts.every(isDoneFor); return ok; };
+  let d = TODAY; if (!full(d)) d = addDays(d, -1);
+  while (full(d) && n < 999) { n++; d = addDays(d, -1); }
+  cur = saved; return n;
+}
+function myStatus() {
+  const ts = sharedTasks(); const saved = cur; cur = TODAY; const done_ = ts.filter(isDoneFor).length; cur = saved;
+  const me = S.me || {};
+  return { nick: (me.nick || '').trim() || 'Klíček', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true) };
+}
+let statusT = null, lastStatusJson = '';
+function scheduleStatus() {
+  if (!window.circle || !circle.ready()) return;
+  clearTimeout(statusT);
+  statusT = setTimeout(() => { const st = myStatus(); const j = JSON.stringify(st); if (j === lastStatusJson) return; lastStatusJson = j; circle.pushStatus(st).catch(() => {}); }, 1200);
+}
+let circleBusy = false, circleErr = '';
+async function circleRefresh(force) {
+  if (!window.circle || !circle.ready()) return;
+  S.social = S.social || {};
+  if (!force && S.social.at && Date.now() - S.social.at < 20000) return;
+  try {
+    const [data, coins] = await Promise.all([circle.load(), circle.coins()]);
+    S.social.data = data; if (coins) S.social.coins = coins; S.social.at = Date.now(); circleErr = '';
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    scheduleStatus();
+  } catch (e) { circleErr = circle.msg(e); }
+  if (tab === 'circle') render();
+}
+const avatarImg = a => `<img class="av" src="img/avatars/${esc(circle.AVATARS.includes(a) ? a : 'leaf')}.webp" alt="">`;
+function viewCircle() {
+  let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Kruh</h2>`;
+  const signed = window.cloud && cloud.user();
+  if (!signed) {
+    h += `<section class="card" style="padding:16px"><p style="margin:0 0 6px"><b>Kruh je pár lidí, kteří si drží palce.</b></p><p class="note" style="margin:0 0 12px">Rodina nebo kamarádi. Vidí jen to, co sám sdílíš – kolik sdílených aktivit máš dnes hotovo a kolik dní v řadě. Žádný žebříček, žádné komentáře.</p>
+      <p class="note" style="margin:0 0 10px">Kruh potřebuje účet, aby se data potkala.</p><button class="btn" id="cloudIn">Propojit s Google účtem</button></section>`;
+    return h + '</div></div>';
+  }
+  const me = S.me || {}; const nick = (me.nick || '').trim() || (signed.user_metadata && (signed.user_metadata.given_name || (signed.user_metadata.full_name || '').split(' ')[0])) || 'Klíček';
+  if (!S.me || !S.me.nick) { S.me = { nick, avatar: me.avatar || 'leaf' }; }
+  const data = S.social && S.social.data;
+  if (circleErr) h += `<p class="note" style="color:var(--red,#c0392b)">${esc(circleErr)}</p>`;
+  // já: přezdívka + avatar
+  h += `<section class="card" style="padding:14px 16px"><div style="display:flex;gap:12px;align-items:center">${avatarImg(S.me.avatar)}<div style="flex:1"><label class="note" for="menick" style="display:block;margin-bottom:4px">Jak ti mají říkat</label><input id="menick" class="inp" maxlength="24" value="${esc(S.me.nick)}" style="width:100%"></div></div>
+    <div class="avrow">${circle.AVATARS.map(a => `<button data-avatar="${a}" class="${S.me.avatar === a ? 'on' : ''}" aria-label="Avatar ${a}"><img src="img/avatars/${a}.webp" alt=""></button>`).join('')}</div></section>`;
+  // co sdílím
+  const sh = S.share || []; const opts = shareable();
+  h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 2px">Co sdílím</h3><p class="note" style="margin:0 0 10px">Ostatní uvidí jen počet splněných z těchto aktivit (${sh.length} / ${opts.length}). Názvy ani poznámky nevidí nikdy.</p>
+    <div class="sharegrid">${opts.map(t => `<button class="sharebtn ${sh.includes(t.id) ? 'on' : ''}" data-share="${t.id}" aria-pressed="${sh.includes(t.id)}"><span class="ticon ${t.img ? 'img' : ''}">${t.img ? actIcon(t.img) : t.ic}</span><span>${esc(t.t)}</span></button>`).join('')}</div>
+    ${sh.length ? '' : '<p class="note" style="margin:10px 0 0">Zatím nesdílíš nic – v kruhu se ukážeš jen jménem.</p>'}</section>`;
+  if (!data) { h += `<p class="note" style="text-align:center">Načítám kruhy…</p>`; return h + '</div></div>'; }
+  // moje kruhy
+  const myId = circle.uid();
+  for (const c of data.circles) {
+    const mem = data.members.filter(m => m.circle_id === c.id);
+    const todayN = data.nudges.filter(n => n.circle_id === c.id && n.day === TODAY);
+    const rows = mem.map(m => {
+      const st = data.status[m.user_id] || {}; const isMe = m.user_id === myId;
+      const fresh = st.day === TODAY; const sentToday = todayN.filter(n => n.from_user === myId && n.to_user === m.user_id).length;
+      const got = todayN.filter(n => n.to_user === m.user_id).length;
+      const prog = fresh && st.total ? `${st.done} / ${st.total}` : (fresh ? 'nic nesdílí' : 'ještě nezačal');
+      return `<div class="crow ${isMe ? 'me' : ''}">${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Klíček')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}</span></div>
+        ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>`;
+    }).join('');
+    const mine = todayN.filter(n => n.to_user === myId).map(n => { const st = data.status[n.from_user] || {}; return `${esc(st.nick || 'někdo')}: ${esc(circle.KINDS[n.kind] || n.kind)}`; });
+    h += `<section class="card" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="font-size:20px;margin:0">${esc(c.name)}</h3><span class="code" title="Kód pro připojení">${esc(c.code)}</span></div>
+      <p class="note" style="margin:2px 0 10px">${mem.length} ${plural(mem.length, 'člen', 'členové', 'členů')} · kód pošli tomu, koho chceš přibrat (max 8).</p>
+      ${rows}
+      ${mine.length ? `<div class="gotbox"><b>Dnes ti drží palce</b>${mine.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="more" data-share-code="${esc(c.code)}">Sdílet kód</button><button class="more" data-leave="${c.id}" style="margin-left:auto;color:var(--muted)">Opustit kruh</button></div></section>`;
+  }
+  // založit / připojit
+  h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 8px">${data.circles.length ? 'Další kruh' : 'Založ kruh nebo se připoj'}</h3>
+    <div style="display:flex;gap:8px;margin-bottom:10px"><input id="cname" class="inp" placeholder="Název, třeba Rodina" maxlength="40" style="flex:1"><button class="btn" id="ccreate" style="width:auto;padding:10px 14px">Založit</button></div>
+    <div style="display:flex;gap:8px"><input id="ccode" class="inp" placeholder="Kód od kamaráda" maxlength="6" autocapitalize="characters" style="flex:1;text-transform:uppercase;letter-spacing:.15em"><button class="btn sec" id="cjoin" style="width:auto;padding:10px 14px">Připojit</button></div></section>
+    <p class="note" style="text-align:center">Za každý poslaný palec máš minci (max 3 denně), za každý přijatý taky.</p>`;
+  return h + '</div></div>';
+}
+
 function viewMore() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
   if (has('levels')) h += levelCard(level());
@@ -965,7 +1054,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -978,6 +1067,14 @@ document.addEventListener('click', e => {
   if (ds.remtest) { const rule = remRules().find(r => r.key === ds.remtest); if (rule) { native.testNotify(rule); toast('Za chvíli přijde ukázka.'); } return; }
   if (ds.remch) { native.openChannelSettings(ds.remch); return; }
   if (t.id === 'remExact') { native.openExactSetting(); return; }
+
+  if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
+  if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }
+  if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }
+  if (ds.nudge) { if (circleBusy) return; const [cid, to] = ds.nudge.split('|'); circleBusy = true; t.disabled = true; circle.nudge(cid, to, 'palec').then(() => { toast('Palec poslán 💪'); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); render(); }).finally(() => { circleBusy = false; }); return; }
+  if (ds.leave) { if (!confirm('Opravdu opustit kruh?')) return; circle.leave(ds.leave).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (t.id === 'ccreate') { const n = (document.getElementById('cname').value || '').trim(); if (!n) { toast('Napiš název kruhu.'); return; } t.disabled = true; circle.create(n).then(r => { toast(`Kruh založen. Kód: ${r.code}`); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
+  if (t.id === 'cjoin') { const c = (document.getElementById('ccode').value || '').trim().toUpperCase(); if (c.length < 6) { toast('Kód má 6 znaků.'); return; } t.disabled = true; circle.join(c).then(r => { toast(`Jsi v kruhu ${r.name}.`); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
   if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
   if (ds.sellyes) { const it = itemById(ds.sellyes); if (it && owned(it.id) && !ALL_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
@@ -1045,6 +1142,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && is
 
 (async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); pushWidget(); } })();
 render();
-if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) syncAll(); lastUid = id; }); cloud.init().catch(() => {}); }
+app.addEventListener('change', e => { if (e.target && e.target.id === 'menick') { S.me = S.me || {}; S.me.nick = e.target.value.trim().slice(0, 24); save(); } });
+if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) { syncAll(); circleRefresh(true); } lastUid = id; }); cloud.init().catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

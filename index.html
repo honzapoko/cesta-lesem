@@ -347,6 +347,27 @@ nav.tabs button.lockd{opacity:.45}
   .dash-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Kruh */
+.inp{box-sizing:border-box;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;font-weight:700;background:var(--bg);color:var(--ink);min-width:0}
+.av{width:52px;height:52px;border-radius:50%;flex-shrink:0;object-fit:cover}
+.avrow{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:2px}
+.avrow button{flex-shrink:0;width:46px;height:46px;border-radius:50%;padding:0;border:0;background:none;opacity:.55}
+.avrow button img{width:100%;height:100%;border-radius:50%;display:block}
+.avrow button.on{opacity:1;box-shadow:0 0 0 3px var(--orange)}
+.sharegrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sharebtn{display:flex;align-items:center;gap:8px;text-align:left;border:1.5px solid var(--line);border-radius:14px;padding:6px 8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-weight:700;opacity:.7}
+.sharebtn.on{border-color:var(--green);background:var(--rose-l,var(--sunk));opacity:1}
+.sharebtn .ticon{width:34px;height:34px;flex-shrink:0;font-size:18px}
+.sharebtn .ticon.img img{width:34px;height:26px}
+.crow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.crow .av{width:44px;height:44px}
+.crow .cinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+.crow .cinfo b{font-size:15px}
+.btn.nudge{width:auto;padding:8px 12px;font-size:15px}
+.code{font-weight:900;letter-spacing:.18em;background:var(--sunk);padding:4px 10px;border-radius:10px;font-size:15px}
+.gotbox{margin-top:10px;background:var(--rose-l,var(--sunk));border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.gotbox b{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 </style>
 </head>
 <body>
@@ -355,9 +376,10 @@ nav.tabs button.lockd{opacity:.45}
 <div class="cel" id="cel" hidden></div>
 <canvas id="confetti" hidden></canvas>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
-<script src="cloud.js?v=13"></script>
-<script src="native.js?v=13"></script>
-<script src="mascot.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="cloud.js?v=14"></script>
+<script src="circle.js?v=14"></script>
+<script src="native.js?v=14"></script>
+<script src="mascot.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
