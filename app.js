@@ -19,7 +19,7 @@ const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
 // migrace: dřív byly všechny kroky pevné; kdo je používal, dostane je jako zapnuté programy
-if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['zena', 'vecer', 'spanek', 'medit', 'pohyb', 'dluh', 'terapie'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
+if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['zena', 'vecer', 'spanek', 'medit', 'pohyb'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
@@ -35,7 +35,7 @@ function bestWeekRun(id) { const wk = [...new Set(doneDays(id).map(weekKey))].so
 
 // ---------- content ----------
 const STEPS = [
-  // 0 = základ pro každého; ostatní jsou volitelné programy (S.programs), zapínají se v „Moje aktivity“
+  // 0 = základ pro každého; ostatní jsou volitelné výzvy (S.programs), zapínají se v „Moje aktivity“ → Výzvy
   { id: 'les', ic: '🌲', t: 'Ranní procházka s vděčností', sub: 'Bez telefonu, klidně 15 minut.', kind: 'day', note: 'grat',
     why: 'Začátek dne, který tě nabíjí. Procházky odemykají vylepšení appky.',
     ms: [{ id: 'les-1', l: '7 procházek za 10 dní', goal: 7, val: () => bestWindow('les', 10) }, { id: 'les-2', l: '30 procházek celkem', goal: 30, val: () => count('les') }] },
@@ -65,13 +65,7 @@ const STEPS = [
     ms: [{ id: 'offline-1', l: '14 večerů bez obrazovky', goal: 14, val: () => count('offline') }] },
   { id: 'vydaje', ic: '💶', t: 'Zapsat výdaje', sub: 'Každý večer, co jsi dnes utratil.', kind: 'day', note: 'text', ph: 'Za co a kolik?', prog: 'Peníze pod kontrolou', pd: 'Denně si zapiš výdaje. Nejde o šetření, ale o to vědět, kam peníze tečou.',
     why: 'Co měříš, to řídíš.',
-    ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] },
-  { id: 'dluh', ic: '📞', t: 'Odkládaný telefonát', sub: 'Ten jeden hovor, který pořád odsouváš.', kind: 'once', note: 'text', ph: 'Komu a co jsi domluvil?', prog: 'Jeden těžký telefonát', pd: 'Jednorázový úkol: zavolat tam, kam se ti nechce (úřad, poradna, lékař). Jen domluvit, nic víc.',
-    why: 'Odložený hovor stojí víc energie než samotný hovor.',
-    ms: [{ id: 'dluh-1', l: 'Hovor vyřízený', goal: 1, val: () => Math.min(1, count('dluh')) }] },
-  { id: 'terapie', ic: '🤝', t: 'Někdo, kdo tě slyší', sub: 'Domluvit první sezení u terapeuta nebo kouče.', kind: 'once', note: 'text', ph: 'U koho a kdy?', prog: 'Někdo, kdo tě slyší', pd: 'Jednorázový úkol: domluvit první sezení u terapeuta, kouče nebo poradny. Nemusíš nic nést sám.',
-    why: 'Mluvit o tom nahlas je první krok, který funguje skoro vždycky.',
-    ms: [{ id: 'terapie-1', l: 'První sezení domluvené', goal: 1, val: () => Math.min(1, count('terapie')) }] }
+    ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] }
 ];
 const msMet = m => m.val() >= m.goal;
 const stepOpen = i => i === 0 || (S.programs || []).includes(STEPS[i].id);
@@ -173,10 +167,10 @@ function activeTasks() {
 function viewPick() {
   const act = S.active || [];
   const sec = CATALOG.map(([g, items]) => `<h3 class="pick-h">${esc(g)}</h3><div class="pick-grid">${items.map(([id, t]) => `<button class="pick ${act.includes(id) ? 'on' : ''}" data-pick="${id}" aria-pressed="${act.includes(id)}"><span class="pi">${actIcon(id)}</span><span>${esc(t)}</span></button>`).join('')}</div>`).join('');
-  const custom = (S.custom || []).map(c => `<button class="pick ${act.includes(c.id) ? 'on' : ''}" data-pick="${c.id}" aria-pressed="${act.includes(c.id)}"><span class="pi" style="font-size:30px;display:grid;place-items:center">${esc(c.ic || '⭐')}</span><span>${esc(c.t)}</span></button>`).join('');
+  const custom = (S.custom || []).map(c => `<button class="pick ${act.includes(c.id) ? 'on' : ''}" data-pick="${c.id}" aria-pressed="${act.includes(c.id)}"><i class="pdel" data-delcustom="${c.id}" role="button" aria-label="Smazat">×</i><span class="pi" style="font-size:30px;display:grid;place-items:center">${esc(c.ic || '⭐')}</span><span>${esc(c.t)}</span></button>`).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Doporučujeme 2–4 najednou, přidávat můžeš kdykoli.</p></div></div>
-    <h3 class="pick-h">Programy</h3><p class="note" style="margin:-4px 0 8px">Větší věci s metou a odměnou. Zapni jen ty, které jsou tvoje.</p>
+    <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Ťuknutím přidáš nebo odebereš. Doporučujeme 2–4 najednou.</p></div></div>
+    <h3 class="pick-h">Výzvy</h3><p class="note" style="margin:-4px 0 8px">Větší věc s metou a odměnou na konci. Zapni jen ty, které jsou tvoje; ťuknutím je zase vypneš.</p>
     <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><span class="gic">${p.ic}</span><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small>Meta: ${esc(p.ms[0].l)}${p.kind === 'once' ? ' · jednorázové' : p.kind === 'week' ? ' · týdně' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div>
     <h3 class="pick-h">Vlastní</h3>
     <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
@@ -487,7 +481,7 @@ function taskHtml(s) {
   const tag = s.kind === 'once' ? '<span class="tag">jednou</span>' : s.kind === 'week' ? '<span class="tag">týdně</span>' : '';
   return `<div class="task"><div class="trow">
     <div class="ticon ${s.img ? 'img' : ''}" aria-hidden="true">${s.img ? actIcon(s.img) : s.ic}</div>
-    <div class="tmain"><h3>${esc(s.t)}${tag}</h3><p>${esc(sub)}</p>${s.note !== 'none' ? `<button class="more" data-open="${s.id}" aria-expanded="${open}">${open ? 'Skrýt poznámku' : 'Poznámka'}</button>` : ''}</div>
+    <div class="tmain"><h3>${esc(s.t)}${tag}</h3><p>${esc(sub)}</p><div class="tlinks">${s.note !== 'none' ? `<button class="more" data-open="${s.id}" aria-expanded="${open}">${open ? 'Skrýt poznámku' : 'Poznámka'}</button>` : ''}${s.opt ? `<button class="more dim" data-unpick="${s.id}">Odebrat</button>` : s.prog ? `<button class="more dim" data-unprog="${s.id}">Vypnout výzvu</button>` : ''}</div></div>
     <button class="check ${on ? 'on' : ''}" data-toggle="${s.id}" aria-pressed="${on}" aria-label="Splněno: ${esc(s.t)}">${I.check}</button>
   </div>${open ? `<div class="tbody">${body}</div>` : ''}</div>`;
 }
@@ -1080,7 +1074,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1098,6 +1092,9 @@ document.addEventListener('click', e => {
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
   if (t.id === 'nameOk') { const v = (document.getElementById('menick').value || '').trim().slice(0, 24); if (!v) return; S.me = S.me || {}; S.me.nick = v; save(); render(); return; }
+  if (ds.unpick) { S.active = (S.active || []).filter(x => x !== ds.unpick); save(); render(); toast('Aktivita odebrána. Záznamy zůstávají, kdykoli ji přidáš zpět.'); return; }
+  if (ds.unprog) { S.programs = (S.programs || []).filter(x => x !== ds.unprog); save(); render(); toast('Výzva vypnutá. Záznamy zůstávají.'); return; }
+  if (ds.delcustom) { if (!confirm('Smazat vlastní aktivitu? Záznamy v kalendáři zůstanou.')) return; S.custom = (S.custom || []).filter(c => c.id !== ds.delcustom); S.active = (S.active || []).filter(x => x !== ds.delcustom); save(); render(); return; }
   if (ds.prog) { S.programs = S.programs || []; S.programs = S.programs.includes(ds.prog) ? S.programs.filter(x => x !== ds.prog) : [...S.programs, ds.prog]; save(); render(); return; }
   if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
   if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }

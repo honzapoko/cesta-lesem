@@ -83,6 +83,18 @@ Styl drž stejný u všech: **„cute 3D render, soft Pixar-like lighting, warm 
 
 **I. Ikony aktivit** – 50 chybějících, ve stejném stylu jako stávající (kruh s lístky, bez textu): čas bez telefonu, den bez sociálních sítí, chvíle ticha, večerní zamyšlení, smích, koníček, plavání, schody, tanec, sauna, kliky, venčení psa, zahrada, týmový sport, přestávka od sezení, odpočinek očí, snídaně, zelenina, káva dopoledne, vitamíny, vařím doma, nejíst pozdě, vstávám včas, bez obrazovky večer, péče o pleť, cizí jazyk, psaní, hudební nástroj, online kurz, podcast, e-maily, nejtěžší věc první, přestávky, konec práce včas, domácí úkoly, čtení dětem, zavolat rodině, čas s dětmi, čas s partnerem, poděkování, nádobí, prádlo, nákup podle seznamu, den bez útraty, zapsat výdaje, zalít květiny, péče o zvíře, společná večeře, dobrovolnictví, třídění odpadu.
 
+**J. Ikony výzev** (10, stejný styl jako ikony aktivit: kruhové pozadí v pastelové barvě, dva lístky po stranách, bez textu, každá zvlášť 1024×1024 na krémovém pozadí #FBF3E6). Prompt pro každou: „Cute 3D icon in the same style as before: round pastel badge with two small green leaves at the sides, soft Pixar-like lighting, no text, solid cream background #FBF3E6, square 1024×1024. Subject: …“
+1. `les` Ranní procházka s vděčností – the sloth walking on a forest path at sunrise, small heart above
+2. `zena` Pro partnerku – two cups of tea and a small heart, warm rose background
+3. `vecer` Večerní věta – open notebook with a crescent moon and one star, lavender background
+4. `spanek` Spánek – sleeping sloth with a sleep mask and a pillow, deep blue background
+5. `medit` Meditace – sloth in lotus pose with closed eyes, lotus flower, soft green background
+6. `pohyb` Pohyb týdně – swimming goggles, dumbbell and a towel, light blue background
+7. `uceni` Škola a učení – stack of books with a pencil and a small kitchen timer, yellow background
+8. `cteni` Čtenář – open book with a bookmark and reading glasses, warm orange background
+9. `offline` Digitální večer – phone face-down with a crossed-out screen and a candle, dusk purple background
+10. `vydaje` Peníze pod kontrolou – small piggy bank with a pencil and a receipt, mint background
+
 ## 6. Technika a pořadí
 
 Kruhy vyžadují cloud (Supabase, tabulky `circles`, `members`, `events`, `bets`) a přihlášení přes Google – to je první podmínka. Pořadí:
