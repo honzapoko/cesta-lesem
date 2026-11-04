@@ -18,6 +18,8 @@ const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
+// migrace: dřív byly všechny kroky pevné; kdo je používal, dostane je jako zapnuté programy
+if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['zena', 'vecer', 'spanek', 'medit', 'pohyb', 'dluh', 'terapie'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
@@ -33,33 +35,46 @@ function bestWeekRun(id) { const wk = [...new Set(doneDays(id).map(weekKey))].so
 
 // ---------- content ----------
 const STEPS = [
-  { id: 'les', ic: '🌲', t: 'Ranní les s vděčností', sub: 'Bez telefonu, klidně 15 minut. Někdy s Arčim.', kind: 'day', note: 'grat',
-    why: 'Tvoje volba. Začátek dne, který tě nabíjí.',
+  // 0 = základ pro každého; ostatní jsou volitelné programy (S.programs), zapínají se v „Moje aktivity“
+  { id: 'les', ic: '🌲', t: 'Ranní procházka s vděčností', sub: 'Bez telefonu, klidně 15 minut.', kind: 'day', note: 'grat',
+    why: 'Začátek dne, který tě nabíjí. Procházky odemykají vylepšení appky.',
     ms: [{ id: 'les-1', l: '7 procházek za 10 dní', goal: 7, val: () => bestWindow('les', 10) }, { id: 'les-2', l: '30 procházek celkem', goal: 30, val: () => count('les') }] },
-  { id: 'dluh', ic: '📞', t: 'Telefonát kvůli dluhům', sub: 'Jen domluvit schůzku v poradně. Nic víc.', kind: 'once', note: 'text', ph: 'Kde a kdy je schůzka?',
-    why: 'Necháš si situaci přepočítat někým, kdo to dělá denně.',
-    ms: [{ id: 'dluh-1', l: 'Schůzka v kalendáři', goal: 1, val: () => Math.min(1, count('dluh')) }] },
-  { id: 'zena', ic: '💛', t: 'Hezká věc pro manželku', sub: 'Všimni si jí a klidně to řekni nahlas.', kind: 'day', note: 'text', ph: 'Čeho sis dnes na ní všiml?',
-    why: 'Trénink vnímání toho dobrého: úsměv, laskavost, péče o zvířata.',
+  { id: 'zena', ic: '💛', t: 'Hezká věc pro partnerku', sub: 'Všimni si jí a klidně to řekni nahlas.', kind: 'day', note: 'text', ph: 'Čeho sis dnes na ní všiml?', prog: 'Pro partnerku', pd: 'Denně jedna hezká věc, kterou si na ní všimneš, plus program 30 malých gest bez tlaku.',
+    why: 'Trénink vnímání toho dobrého: úsměv, laskavost, péče.',
     ms: [{ id: 'zena-1', l: '14 dní v řadě', goal: 14, val: () => bestRun('zena') }] },
-  { id: 'vecer', ic: '🌙', t: 'Co se dnes povedlo', sub: 'Jedna věta před spaním.', kind: 'day', note: 'text', ph: 'Dnes se povedlo…',
-    why: 'Večerní povídání, které má Honza za rok. Zatím sám se sebou.',
+  { id: 'vecer', ic: '🌙', t: 'Co se dnes povedlo', sub: 'Jedna věta před spaním.', kind: 'day', note: 'text', ph: 'Dnes se povedlo…', prog: 'Večerní věta', pd: 'Každý večer jedna věta o tom, co se povedlo. Za měsíc je z toho deník dobrých dnů.',
+    why: 'Mozek si pamatuje, co mu večer připomeneš.',
     ms: [{ id: 'vecer-1', l: '14 večerů zapsáno', goal: 14, val: () => count('vecer') }] },
-  { id: 'spanek', ic: '😴', t: 'Spánkový experiment', sub: 'Co bylo večer a kolikrát ses vzbudil.', kind: 'day', note: 'sleep',
-    why: 'Data z Oury ti řeknou víc než rady.',
+  { id: 'spanek', ic: '😴', t: 'Spánkový deník', sub: 'Co bylo večer a jak ses vyspal.', kind: 'day', note: 'sleep', prog: 'Spánek', pd: 'Zapisuj, co bylo večer a kolikrát ses vzbudil. Po dvou týdnech uvidíš, co ti spánek kazí.',
+    why: 'Vlastní data ti řeknou víc než obecné rady.',
     ms: [{ id: 'spanek-1', l: '14 nocí zapsáno', goal: 14, val: () => count('spanek') }] },
-  { id: 'medit', ic: '🪷', t: '5 minut meditace', sub: 'Hned po lese, než si dáš kafíčko.', kind: 'day', note: 'none',
-    why: 'Cesta do těch stavů vlastní silou, po malých kouscích.',
+  { id: 'medit', ic: '🪷', t: '5 minut meditace', sub: 'Hned po procházce, než se rozjede den.', kind: 'day', note: 'none', prog: 'Meditace', pd: 'Pět minut ticha denně. Časovač s gongem je v záložce Více.',
+    why: 'Klid v hlavě po malých kouscích.',
     ms: [{ id: 'medit-1', l: '21 meditací', goal: 21, val: () => count('medit') }] },
-  { id: 'pohyb', ic: '🏊', t: 'Pohyb jednou týdně', sub: 'Plavání, sauna, posilovna. Klidně s Pepou.', kind: 'week', note: 'text', ph: 'Co jsi dělal?',
+  { id: 'pohyb', ic: '🏊', t: 'Pohyb jednou týdně', sub: 'Plavání, sauna, posilovna, kolo.', kind: 'week', note: 'text', ph: 'Co jsi dělal?', prog: 'Pohyb týdně', pd: 'Jednou týdně něco pořádného pro tělo. Počítá se týdenní řada.',
     why: 'Tělo je palivo pro všechno ostatní.',
     ms: [{ id: 'pohyb-1', l: '4 týdny po sobě', goal: 4, val: () => bestWeekRun('pohyb') }] },
-  { id: 'terapie', ic: '🤝', t: 'Někdo, kdo tě slyší', sub: 'Domluvit první sezení u terapeuta.', kind: 'once', note: 'text', ph: 'U koho a kdy?',
-    why: 'Vzorce po tátovi a pocit neviditelnosti nemusíš nést sám.',
+  { id: 'uceni', ic: '📚', t: 'Učení 25 minut', sub: 'Jedna soustředěná dávka, bez telefonu.', kind: 'day', note: 'text', ph: 'Co ses učil?', prog: 'Škola a učení', pd: 'Každý den 25 minut soustředěného učení (pomodoro). Pro studenty a pro každého, kdo se něco učí.',
+    why: 'Malá dávka denně porazí noc před zkouškou.',
+    ms: [{ id: 'uceni-1', l: '20 učebních dnů', goal: 20, val: () => count('uceni') }] },
+  { id: 'cteni', ic: '📖', t: 'Deset stran denně', sub: 'Kniha, ne displej.', kind: 'day', note: 'text', ph: 'Co čteš?', prog: 'Čtenář', pd: 'Deset stran denně je 15 knih za rok. Zapisuj, co zrovna čteš.',
+    why: 'Čtení je jediný návyk, který tě dělá chytřejším, i když odpočíváš.',
+    ms: [{ id: 'cteni-1', l: '30 dní čtení', goal: 30, val: () => count('cteni') }] },
+  { id: 'offline', ic: '📵', t: 'Večer bez obrazovky', sub: 'Hodinu před spaním telefon pryč.', kind: 'day', note: 'none', prog: 'Digitální večer', pd: 'Poslední hodina dne bez telefonu a počítače. Lepší spánek do dvou týdnů.',
+    why: 'Modré světlo a scrollování kradou spánek nejvíc.',
+    ms: [{ id: 'offline-1', l: '14 večerů bez obrazovky', goal: 14, val: () => count('offline') }] },
+  { id: 'vydaje', ic: '💶', t: 'Zapsat výdaje', sub: 'Každý večer, co jsi dnes utratil.', kind: 'day', note: 'text', ph: 'Za co a kolik?', prog: 'Peníze pod kontrolou', pd: 'Denně si zapiš výdaje. Nejde o šetření, ale o to vědět, kam peníze tečou.',
+    why: 'Co měříš, to řídíš.',
+    ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] },
+  { id: 'dluh', ic: '📞', t: 'Odkládaný telefonát', sub: 'Ten jeden hovor, který pořád odsouváš.', kind: 'once', note: 'text', ph: 'Komu a co jsi domluvil?', prog: 'Jeden těžký telefonát', pd: 'Jednorázový úkol: zavolat tam, kam se ti nechce (úřad, poradna, lékař). Jen domluvit, nic víc.',
+    why: 'Odložený hovor stojí víc energie než samotný hovor.',
+    ms: [{ id: 'dluh-1', l: 'Hovor vyřízený', goal: 1, val: () => Math.min(1, count('dluh')) }] },
+  { id: 'terapie', ic: '🤝', t: 'Někdo, kdo tě slyší', sub: 'Domluvit první sezení u terapeuta nebo kouče.', kind: 'once', note: 'text', ph: 'U koho a kdy?', prog: 'Někdo, kdo tě slyší', pd: 'Jednorázový úkol: domluvit první sezení u terapeuta, kouče nebo poradny. Nemusíš nic nést sám.',
+    why: 'Mluvit o tom nahlas je první krok, který funguje skoro vždycky.',
     ms: [{ id: 'terapie-1', l: 'První sezení domluvené', goal: 1, val: () => Math.min(1, count('terapie')) }] }
 ];
 const msMet = m => m.val() >= m.goal;
-const stepOpen = i => i === 0 || msMet(STEPS[i - 1].ms[0]);
+const stepOpen = i => i === 0 || (S.programs || []).includes(STEPS[i].id);
 
 const UNLOCKS = [
   { n: 1, id: 'week', t: 'Týdenní řádka', d: 'Na domovské obrazovce uvidíš celý týden.', tab: 'home', where: 'Domů, pod maskotem' },
@@ -114,10 +129,10 @@ const GESTA = [
   ['Důvěra', 'Pochval ji před někým dalším, před dětmi nebo kamarádem.'],
   ['Důvěra', 'Malá pozornost: květina, čokoláda nebo něco, co má ráda. Nemusí stát skoro nic.'],
   ['Důvěra', 'Napiš jí lísteček a nech ho tam, kde ho najde.'],
-  ['Společný čas', 'Pozvi ji na krátkou procházku s Arčim. Vztah neřeš, jen buďte venku.'],
+  ['Společný čas', 'Pozvi ji na krátkou procházku. Vztah neřeš, jen buďte venku.'],
   ['Společný čas', 'Zeptej se na její den a na jednu věc, která ji teď těší.'],
   ['Společný čas', 'Připomeň jí nahlas jednu hezkou společnou vzpomínku.'],
-  ['Společný čas', 'Zeptej se jejích kluků na hru, kterou hrají. Bez výchovných řečí, jen se zajímej.'],
+  ['Společný čas', 'Zeptej se jejích dětí nebo blízkých na to, co je baví. Bez výchovných řečí, jen se zajímej.'],
   ['Společný čas', 'Navrhni malé rande doma, film nebo večeři. Když řekne ne, přijmi to v klidu.'],
   ['Společný čas', 'Zeptej se, jestli ji můžeš obejmout. Její odpověď je v pořádku, ať je jakákoli.'],
   ['Společný čas', 'Večer jí řekni, co se ti na dnešku s ní líbilo.'],
@@ -125,7 +140,7 @@ const GESTA = [
   ['Nový způsob mluvení', 'Na jednu její výtku odpověz „Máš pravdu v tom, že…“ místo obhajoby.'],
   ['Nový způsob mluvení', 'Nabídni párovou poradnu jako společný krok. Bez tlaku, rozhodnutí nech na ní.'],
   ['Nový způsob mluvení', 'Udělej něco, o čem nedávno mluvila, že by chtěla.'],
-  ['Nový způsob mluvení', 'Pošli jí fotku něčeho hezkého z ranního lesa.'],
+  ['Nový způsob mluvení', 'Pošli jí fotku něčeho hezkého z ranní procházky.'],
   ['Nový způsob mluvení', 'Poděkuj jí za jednu konkrétní věc, kterou dělá pro rodinu.'],
   ['Nový způsob mluvení', 'Řekni jí, co ses za poslední týdny naučil sám o sobě.'],
   ['Nový způsob mluvení', 'Zeptej se, jak vnímá posledních pár týdnů. Poslouchej až do konce.'],
@@ -161,17 +176,19 @@ function viewPick() {
   const custom = (S.custom || []).map(c => `<button class="pick ${act.includes(c.id) ? 'on' : ''}" data-pick="${c.id}" aria-pressed="${act.includes(c.id)}"><span class="pi" style="font-size:30px;display:grid;place-items:center">${esc(c.ic || '⭐')}</span><span>${esc(c.t)}</span></button>`).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Doporučujeme 2–4 najednou, přidávat můžeš kdykoli.</p></div></div>
+    <h3 class="pick-h">Programy</h3><p class="note" style="margin:-4px 0 8px">Větší věci s metou a odměnou. Zapni jen ty, které jsou tvoje.</p>
+    <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><span class="gic">${p.ic}</span><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small>Meta: ${esc(p.ms[0].l)}${p.kind === 'once' ? ' · jednorázové' : p.kind === 'week' ? ' · týdně' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div>
     <h3 class="pick-h">Vlastní</h3>
     <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
     ${sec}
-    <p class="note">Ranní les s vděčností a kroky Cesty zůstávají vždy; tady si přidáváš, co chceš sledovat navíc.</p>
+    <p class="note">Ranní procházka s vděčností zůstává vždy; tady si přidáváš, co chceš sledovat navíc.</p>
   </div></div>`;
 }
 
 // ---------- připomínky per aktivita ----------
 const DEF_RULE = { mode: 'off', at: '08:00', every: 60, from: '08:00', to: '20:00', channel: 'gentle' };
 function remItems() {
-  const base = [{ key: 'les', t: 'Ranní les s vděčností', img: 'img/acts/ranni-prochazka.webp', def: { mode: 'daily', at: '07:00' } }, { key: 'evening', t: 'Zapiš si den', img: 'img/acts/denik.webp', def: { mode: 'daily', at: '20:30' } }];
+  const base = [{ key: 'les', t: 'Ranní procházka s vděčností', img: 'img/acts/ranni-prochazka.webp', def: { mode: 'daily', at: '07:00' } }, { key: 'evening', t: 'Zapiš si den', img: 'img/acts/denik.webp', def: { mode: 'daily', at: '20:30' } }];
   const acts = activeTasks().map(a => ({ key: a.id, t: a.t, img: a.img ? `img/acts/${a.img}.webp` : null, def: { mode: 'off' } }));
   return base.concat(acts);
 }
@@ -201,7 +218,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -401,6 +418,9 @@ function moodLead(mood, hour, nDone, total) {
   return 'Pomalu, ale jistě.';
 }
 
+// jméno: přezdívka z nastavení, jinak křestní jméno z Googlu
+function userName() { const n = S.me && S.me.nick; if (n) return n; const u = window.cloud && cloud.user(); const m = u && u.user_metadata; return m ? (m.given_name || (m.full_name || '').split(' ')[0] || '') : ''; }
+function nameCard() { if (userName()) return ''; return `<section class="card" style="padding:12px 16px"><b>Jak ti má Klíček říkat?</b><div style="display:flex;gap:8px;margin-top:8px"><input id="menick" class="inp" maxlength="24" placeholder="Křestní jméno" style="flex:1"><button class="btn" id="nameOk" style="width:auto;padding:10px 14px">Uložit</button></div></section>`; }
 function viewHome() {
   const w = walks(), run = curRun('les'), nu = nextUnlock(), lesToday = done('les', TODAY);
   const hour = new Date().getHours();
@@ -411,7 +431,7 @@ function viewHome() {
   const lbl = cur === TODAY ? 'Dnes' : cur === addDays(TODAY, -1) ? 'Včera' : DAYNAMES[d.getDay()][0].toUpperCase() + DAYNAMES[d.getDay()].slice(1);
   const C = 2 * Math.PI * 52, frac = tasks.length ? nDone / tasks.length : 0;
   let html = `<header class="top gut">${brand()}
-    <div class="hero"><div><h1>Ahoj,<br>Honzo!</h1><p>${esc(lead)}</p></div>
+    <div class="hero"><div><h1>Ahoj${userName() ? ',<br>' + esc(userName()) + '!' : '!'}</h1><p>${esc(lead)}</p></div>
       <div class="ringcard" role="img" aria-label="${cur === TODAY ? 'Dnes' : 'Den'} ${nDone} z ${tasks.length} splněno"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--sunk)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="var(--orange)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}"/></svg>
       <div class="rt"><small>${cur === TODAY ? 'DNES' : 'DEN'}</small><b>${nDone}/${tasks.length}</b><span>splněno</span></div></div></div></header>
     <div class="banner banner-${mood}">${mascot(mood, { flower: has('flower') })}
@@ -427,18 +447,19 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${gestCard()}
+    ${nameCard()}${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po procházce č. ${nu.n}. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
 }
 
 function gestCard() {
-  if (!S.gestStart) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro manželku</small><h3>30 malých gest</h3></div></div>
+  if (!(S.programs || []).includes('zena')) return '';
+  if (!S.gestStart) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro partnerku</small><h3>30 malých gest</h3></div></div>
     <p>Každý den jedno malé gesto bez tlaku. Nejde o to ji získat, ale být člověkem, se kterým se jí bude chtít být. Rozhodnutí je její.</p>
     <button class="btn" data-gstart="1">Začít 30 gest</button></section>`;
   const k = gestIndex(cur);
-  if (k >= GESTA.length) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro manželku</small><h3>30 gest máš za sebou</h3></div></div>
+  if (k >= GESTA.length) return `<section class="card gest"><div class="gtop"><span class="gic">💛</span><div><small>Pro partnerku</small><h3>30 gest máš za sebou</h3></div></div>
     <p>Pokračuj v tom, co fungovalo nejlíp. Zapiš si to klidně jako svoje vlastní gesto.</p></section>`;
   const [phase, text] = GESTA[k], e = entry('gesto', cur), on = !!e.d;
   return `<section class="card gest ${on ? 'done' : ''}"><div class="gtop"><span class="gic">💛</span><div style="flex:1;min-width:0"><small>Gesto ${k + 1} / ${GESTA.length} · ${esc(phase)}</small><h3>${esc(text)}</h3></div>
@@ -904,7 +925,7 @@ function viewMore() {
       <label class="btn sec" style="text-align:center;cursor:pointer">Obnovit ze zálohy<input type="file" id="imp" accept="application/json,.json" hidden></label>
       <div id="impConfirm"></div>
     </div></section>
-    <p class="note" style="text-align:center">Cesta lesem · aplikace pro Honzu</p>
+    <p class="note" style="text-align:center">Klíček · pomalu, ale jistě</p>
   </div></div>`;
   return h;
 }
@@ -1059,7 +1080,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1076,6 +1097,8 @@ document.addEventListener('click', e => {
   if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (t.id === 'nameOk') { const v = (document.getElementById('menick').value || '').trim().slice(0, 24); if (!v) return; S.me = S.me || {}; S.me.nick = v; save(); render(); return; }
+  if (ds.prog) { S.programs = S.programs || []; S.programs = S.programs.includes(ds.prog) ? S.programs.filter(x => x !== ds.prog) : [...S.programs, ds.prog]; save(); render(); return; }
   if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
   if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }
   if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }

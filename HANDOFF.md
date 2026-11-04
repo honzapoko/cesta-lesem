@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Klíček (3. 11. 2026)
+# HANDOFF.md – stav projektu Klíček (4. 11. 2026)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla) a tenhle soubor (stav). Pak není potřeba nic dalšího.
 
@@ -15,6 +15,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla) a tenhle soubor (st
 | SQL | `supabase/circles_v1.sql` (kruhy), `supabase/circles_v2_posts.sql` (vzkazy) |
 
 ## 2. Co appka umí (hotovo a ověřeno)
+- **Univerzální pro každého uživatele (4. 11.)**: jméno se bere z `S.me.nick` (karta „Jak ti má Klíček říkat?“ na Domů, dokud není vyplněno) nebo z Google účtu; jediný pevný úkol je „Ranní procházka s vděčností“ (`STEPS[0]`), ostatní kroky jsou **programy** (`STEPS[i].prog`, zapnuté v `S.programs`, výběr v Moje aktivity → Programy): Pro partnerku (+30 gest), Večerní věta, Spánek, Meditace, Pohyb týdně, Škola a učení, Čtenář, Digitální večer, Peníze pod kontrolou, Jeden těžký telefonát, Někdo, kdo tě slyší. Migrace: existující uživatel dostane zapnuté ty programy, které už měl v logu. Žádná jména (Honza, Arči, Pepa) v textech appky.
 - **Domů**: úkoly dne (pevné kroky `STEPS` + volitelné aktivity z katalogu `CATALOG`, 103 položek v 5 skupinách, všechny s ikonou; vlastní aktivity `S.custom`), nálada Klíčka podle denní doby a splnění (`homeMood`), týdenní pás, věta dne, 30 gest pro manželku, odemykání vylepšení za procházky (`UNLOCKS`), úrovně XP.
 - **Zahrada** (tab `path`): 5 zenových scén + 5 lokalit (mýtina, chata, pláž, observatoř, kuchyně) s odemykáním (`PLACES`: 30 lesů / úroveň Stromek / 30× Spát včas / Kruh – brzy). Mince `coinsEarned()` (1/úkol, 3 les, +3 celý den, +10 za 7 dní lesa, + podpora v kruhu). 33 předmětů zahrady (`GARDEN_ITEMS`) + 116 v lokalitách (`PLACE_ITEMS`), 4 cenové hladiny, řetězce `replaces/needs`, prodej zpět ťuknutím, přesun podržením 250 ms, pozice per scéna `S.garden.pos`. Klíček má v každé lokalitě vlastní pózu `img/places/sloth-<loc>.webp`.
 - **Kalendář, Statistiky** (odemykají se).
@@ -25,6 +26,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla) a tenhle soubor (st
 - **Cloud sync**: `days` (per den) + `profiles` (klíče `PROFILE_KEYS`), merge novější vyhrává (`pullMerge`).
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
+0. **Tomáš (syn) testuje** – zpětná vazba 4. 11. vyřešena (jméno, osobní úkoly). Další zpětnou vazbu od dětí čekat.
 1. **Ověřit vzkazy** – Honza musel spustit `circles_v2_posts.sql`; zkontrolovat v `list_tables`, že `posts` existuje. Honzův kruh: kód **PUTF45**.
 2. **Děti do kruhu** – přihlášení přes Google na webu (jsou v test users), zadat kód. Případně jim nahrát Android appku (stejný postup jako Honzovi, jiný telefon = `adb devices`).
 3. **Oslavy v kruhu** – když člen splní celý sdílený den / metu, ostatním se ukáže s konfetami + tlačítko Pogratulovat (`kind: 'gratulace'` už v `nudges` existuje).
