@@ -171,7 +171,7 @@ function viewPick() {
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Ťuknutím přidáš nebo odebereš. Doporučujeme 2–4 najednou.</p></div></div>
     <h3 class="pick-h">Výzvy</h3><p class="note" style="margin:-4px 0 8px">Větší věc s metou a odměnou na konci. Zapni jen ty, které jsou tvoje; ťuknutím je zase vypneš.</p>
-    <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><span class="gic">${p.ic}</span><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small>Meta: ${esc(p.ms[0].l)}${p.kind === 'once' ? ' · jednorázové' : p.kind === 'week' ? ' · týdně' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div>
+    <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><img class="pimg" src="img/challenges/${p.id}.webp" alt=""><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small>Meta: ${esc(p.ms[0].l)}${p.kind === 'once' ? ' · jednorázové' : p.kind === 'week' ? ' · týdně' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div>
     <h3 class="pick-h">Vlastní</h3>
     <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
     ${sec}
@@ -480,7 +480,7 @@ function taskHtml(s) {
   }
   const tag = s.kind === 'once' ? '<span class="tag">jednou</span>' : s.kind === 'week' ? '<span class="tag">týdně</span>' : '';
   return `<div class="task"><div class="trow">
-    <div class="ticon ${s.img ? 'img' : ''}" aria-hidden="true">${s.img ? actIcon(s.img) : s.ic}</div>
+    <div class="ticon ${s.img ? 'img' : s.ms ? 'img ch' : ''}" aria-hidden="true">${s.img ? actIcon(s.img) : s.ms ? `<img src="img/challenges/${s.id}.webp" alt="" draggable="false">` : s.ic}</div>
     <div class="tmain"><h3>${esc(s.t)}${tag}</h3><p>${esc(sub)}</p><div class="tlinks">${s.note !== 'none' ? `<button class="more" data-open="${s.id}" aria-expanded="${open}">${open ? 'Skrýt poznámku' : 'Poznámka'}</button>` : ''}${s.opt ? `<button class="more dim" data-unpick="${s.id}">Odebrat</button>` : s.prog ? `<button class="more dim" data-unprog="${s.id}">Vypnout výzvu</button>` : ''}</div></div>
     <button class="check ${on ? 'on' : ''}" data-toggle="${s.id}" aria-pressed="${on}" aria-label="Splněno: ${esc(s.t)}">${I.check}</button>
   </div>${open ? `<div class="tbody">${body}</div>` : ''}</div>`;
@@ -852,7 +852,7 @@ function viewCircle() {
   // co sdílím
   const sh = S.share || []; const opts = shareable();
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 2px">Co sdílím</h3><p class="note" style="margin:0 0 10px">Ostatní uvidí jen počet splněných z těchto aktivit (${sh.length} / ${opts.length}). Názvy ani poznámky nevidí nikdy.</p>
-    <div class="sharegrid">${opts.map(t => `<button class="sharebtn ${sh.includes(t.id) ? 'on' : ''}" data-share="${t.id}" aria-pressed="${sh.includes(t.id)}"><span class="ticon ${t.img ? 'img' : ''}">${t.img ? actIcon(t.img) : t.ic}</span><span>${esc(t.t)}</span></button>`).join('')}</div>
+    <div class="sharegrid">${opts.map(t => `<button class="sharebtn ${sh.includes(t.id) ? 'on' : ''}" data-share="${t.id}" aria-pressed="${sh.includes(t.id)}"><span class="ticon ${t.img ? 'img' : t.ms ? 'img ch' : ''}">${t.img ? actIcon(t.img) : t.ms ? `<img src="img/challenges/${t.id}.webp" alt="">` : t.ic}</span><span>${esc(t.t)}</span></button>`).join('')}</div>
     ${sh.length ? '' : '<p class="note" style="margin:10px 0 0">Zatím nesdílíš nic – v kruhu se ukážeš jen jménem.</p>'}</section>`;
   if (!data) { h += `<p class="note" style="text-align:center">Načítám kruhy…</p>`; return h + '</div></div>'; }
   // moje kruhy
@@ -873,7 +873,7 @@ function viewCircle() {
       <p class="note" style="margin:2px 0 10px">${mem.length} ${plural(mem.length, 'člen', 'členové', 'členů')} · kód pošli tomu, koho chceš přibrat (max 8).</p>
       ${rows}
       ${mine.length ? `<div class="gotbox"><b>Dnes ti drží palce</b>${mine.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
-      ${(() => { if (!data.posts) return '<p class="note" style="margin:10px 0 0">Vzkazy budou fungovat po spuštění supabase/circles_v2_posts.sql.</p>'; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Klíček')}</option>`).join('');
+      ${(() => { if (!data.posts) return ''; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Klíček')}</option>`).join('');
         return `<div class="posts"><b class="plab">Vzkazy</b>${ps.length ? ps.map(p => { const st = data.status[p.user_id] || {}; const to = p.to_user ? (data.status[p.to_user] || {}).nick : ''; const own = p.user_id === myId || c.owner === myId; const d = new Date(p.created_at); const when = d.toISOString().slice(0, 10) === TODAY ? d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : `${d.getDate()}. ${d.getMonth() + 1}.`;
           return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Klíček')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
           <div class="quick">${circle.QUICK.map(q => `<button data-quick="${esc(q)}" data-cid="${c.id}">${esc(q)}</button>`).join('')}</div>

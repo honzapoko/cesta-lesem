@@ -47,7 +47,7 @@
     // chyby RPC → česky
     msg(e) {
       const t = String(e && (e.message || e)) || '';
-      if (t.includes('relation') && t.includes('does not exist') || t.includes('42P01') || t.includes('PGRST202') || t.includes('schema cache')) return 'Databáze kruhů ještě není připravená (spusť supabase/circles_v1.sql).';
+      if (t.includes('relation') && t.includes('does not exist') || t.includes('42P01') || t.includes('PGRST202') || t.includes('schema cache')) return 'Kruhy teď nejsou dostupné. Zkus to později.';
       if (t.includes('no such circle')) return 'Kruh s tímhle kódem neexistuje. Zkontroluj překlepy.';
       if (t.includes('circle full')) return 'Kruh je plný (max 8 lidí).';
       if (t.includes('too many')) return 'Můžeš být nejvíc v 5 kruzích.';
