@@ -217,7 +217,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -249,7 +249,7 @@ async function pullMerge() {
     if (Array.isArray(st.celebrated)) S.celebrated = [...new Set([...(S.celebrated || []), ...st.celebrated])];
     if (st.celDays) S.celDays = Object.assign({}, st.celDays, S.celDays);
     if (typeof st.unlockSeen === 'number') S.unlockSeen = Math.max(S.unlockSeen || 0, st.unlockSeen);
-    if (st.garden) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned = [...new Set([...(S.garden.owned || []), ...(st.garden.owned || [])])]; S.garden.unlocked = [...new Set([...(S.garden.unlocked || []), ...(st.garden.unlocked || [])])]; if (!S.garden.scene) S.garden.scene = st.garden.scene; if (st.garden.pos && r.profile.ts > (S.updatedAt || 0)) S.garden.pos = st.garden.pos; }
+    if (st.garden) { S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned = [...new Set([...(S.garden.owned || []), ...(st.garden.owned || [])])]; S.garden.unlocked = [...new Set([...(S.garden.unlocked || []), ...(st.garden.unlocked || [])])]; S.garden.fee = Math.max(S.garden.fee || 0, st.garden.fee || 0); if (!S.garden.scene) S.garden.scene = st.garden.scene; if (st.garden.pos && r.profile.ts > (S.updatedAt || 0)) S.garden.pos = st.garden.pos; }
     if (st.fullDays) S.fullDays = Object.assign({}, st.fullDays, S.fullDays || {});
     if (Array.isArray(st.active)) S.active = [...new Set([...(S.active || []), ...st.active])];
     if (Array.isArray(st.custom)) st.custom.forEach(c => { if (!(S.custom || []).some(x => x.id === c.id)) (S.custom = S.custom || []).push(c); });
@@ -421,6 +421,23 @@ function moodLead(mood, hour, nDone, total) {
 }
 
 // jméno: přezdívka z nastavení, jinak křestní jméno z Googlu
+// 5. pád pro oslovení (Tom → Tome, Honza → Honzo, Tomáš → Tomáši, Petr → Petře)
+function vocative(n) {
+  n = (n || '').trim(); if (!n) return '';
+  const X = { 'Petr': 'Petře', 'Pavel': 'Pavle', 'Karel': 'Karle', 'Zdeněk': 'Zdeňku', 'Vojtěch': 'Vojtěchu', 'Jiří': 'Jiří', 'Bedřich': 'Bedřichu', 'Jindřich': 'Jindřichu', 'Aleš': 'Aleši', 'Marie': 'Marie', 'Lucie': 'Lucie', 'Honza': 'Honzo', 'Nikol': 'Nikol', 'Miroslav': 'Miroslave', 'Igor': 'Igore', 'Oskar': 'Oskare' };
+  if (X[n]) return X[n];
+  const l = n.toLowerCase(), last = l.slice(-1), two = l.slice(-2);
+  if ('eiíyouúů'.includes(last)) return n;
+  if (last === 'a') return n.slice(0, -1) + 'o';
+  if (two === 'ěk') return n.slice(0, -2) + 'ňku';
+  if (two === 'ek') return n.slice(0, -2) + 'ku';
+  if (two === 'ec') return n.slice(0, -2) + 'če';
+  if (two === 'el' && !'aeiouyáéíóúůý'.includes(l.slice(-3, -2))) return n.slice(0, -2) + 'le';
+  if (two === 'ch' || 'kgh'.includes(last)) return n + 'u';
+  if ('šžčřjcďťň'.includes(last)) return n + 'i';
+  if (last === 'r') return 'aeiouyáéíóúůý'.includes(l.slice(-2, -1)) ? n + 're' : n.slice(0, -1) + 'ře';
+  return n + 'e';
+}
 function userName() { const n = S.me && S.me.nick; if (n) return n; const u = window.cloud && cloud.user(); const m = u && u.user_metadata; return m ? (m.given_name || (m.full_name || '').split(' ')[0] || '') : ''; }
 function nameCard() { if (userName()) return ''; return `<section class="card" style="padding:12px 16px"><b>Jak ti má Klíček říkat?</b><div style="display:flex;gap:8px;margin-top:8px"><input id="menick" class="inp" maxlength="24" placeholder="Křestní jméno" style="flex:1"><button class="btn" id="nameOk" style="width:auto;padding:10px 14px">Uložit</button></div></section>`; }
 // pozvánka do Kruhu na Domů, dokud uživatel v žádném není (Kruhy jsou dostupné od prvního dne)
@@ -440,7 +457,7 @@ function viewHome() {
   const lbl = cur === TODAY ? 'Dnes' : cur === addDays(TODAY, -1) ? 'Včera' : DAYNAMES[d.getDay()][0].toUpperCase() + DAYNAMES[d.getDay()].slice(1);
   const C = 2 * Math.PI * 52, frac = tasks.length ? nDone / tasks.length : 0;
   let html = `<header class="top gut">${brand()}
-    <div class="hero"><div><h1>Ahoj${userName() ? ',<br>' + esc(userName()) + '!' : '!'}</h1><p>${esc(lead)}</p></div>
+    <div class="hero"><div><h1>Ahoj${userName() ? ',<br>' + esc(vocative(userName())) + '!' : '!'}</h1><p>${esc(lead)}</p></div>
       <div class="ringcard" role="img" aria-label="${cur === TODAY ? 'Dnes' : 'Den'} ${nDone} z ${tasks.length} splněno"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--sunk)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="var(--orange)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}"/></svg>
       <div class="rt"><small>${cur === TODAY ? 'DNES' : 'DEN'}</small><b>${nDone}/${tasks.length}</b><span>splněno</span></div></div></div></header>
     <div class="banner banner-${mood}">${mascot(mood, { flower: has('flower') })}
@@ -530,9 +547,11 @@ function coinsEarned() {
   }
   c += Math.floor(bestDayRun() / 7) * 10;
   if (S.social && S.social.coins) c += (S.social.coins.sent || 0) + (S.social.coins.received || 0);
+  c += (S.goals || []).filter(g => g.done).reduce((a, g) => a + (g.coins || 0), 0);
   return c;
 }
-const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((itemById(id) || { price: 0 }).price), 0);
+const sellPrice = it => Math.max(1, Math.floor(it.price * 0.8));
+const coinsSpent = () => (S.garden && S.garden.owned || []).reduce((a, id) => a + ((itemById(id) || { price: 0 }).price), 0) + (S.garden && S.garden.fee || 0);
 const coins = () => Math.max(0, coinsEarned() - coinsSpent());
 // scény: light = odkud svítí slunce (předměty jsou nasvícené zprava → u scén se sluncem vlevo se zrcadlí)
 const SCENES = [
@@ -750,7 +769,7 @@ function viewGarden() {
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět, krátkým podržením a tažením ho přesuneš (i Klíčka).</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = itemById(S.sell); if (!it) return ''; const dep = ALL_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + it.price + '?'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || (place ? { x: 50, y: 98 } : { x: 50, y: 80 }); return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:${place ? 30 : 24}%;z-index:${Math.round(sp.y)}"><img draggable="false" src="${place ? 'img/places/sloth-' + scene.id : 'img/garden/' + gardenMood()}.webp" alt=""></button>`; })()}</div>
+    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = itemById(S.sell); if (!it) return ''; const dep = ALL_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + sellPrice(it) + '? (80 % ceny)'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || (place ? { x: 50, y: 98 } : { x: 50, y: 80 }); return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:${place ? 30 : 24}%;z-index:${Math.round(sp.y)}"><img draggable="false" src="${place ? 'img/places/sloth-' + scene.id : 'img/garden/' + gardenMood()}.webp" alt=""></button>`; })()}</div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
     <p class="note" style="text-align:center;margin:-6px 0 -4px">Další místa</p>
     <div class="seg scenes">${PLACES.map(x => { const o = placeOpen(x); return `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''} ${o ? '' : 'lockd'}" aria-label="${esc(x.t)}${o ? '' : ', zamčeno'}"><img src="img/places/${x.id}-thumb.webp" alt="">${o ? '' : '<i>🔒</i>'}</button>`; }).join('')}</div>
@@ -827,13 +846,15 @@ function sharedStreak(ts) {
 function myStatus() {
   const ts = sharedTasks(); const saved = cur; cur = TODAY; const done_ = ts.filter(isDoneFor).length; cur = saved;
   const me = S.me || {};
-  return { nick: (me.nick || '').trim() || 'Klíček', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true) };
+  const items = ts.map(t => ({ t: t.t, ic: t.img ? null : (t.ms ? null : t.ic), img: t.img ? `img/acts/${t.img}.webp` : (t.ms ? `img/challenges/${t.id}.webp` : null), done: isDoneFor(t) ? 1 : 0 }));
+  cur = TODAY; items.forEach((it, k) => { it.done = isDoneFor(ts[k]) ? 1 : 0; }); cur = saved;
+  return { nick: (me.nick || '').trim() || 'Klíček', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true), items };
 }
 let statusT = null, lastStatusJson = '';
 function scheduleStatus() {
   if (!window.circle || !circle.ready()) return;
   clearTimeout(statusT);
-  statusT = setTimeout(() => { const st = myStatus(); const j = JSON.stringify(st); if (j === lastStatusJson) return; lastStatusJson = j; circle.pushStatus(st).catch(() => {}); }, 1200);
+  statusT = setTimeout(() => { const st = myStatus(); const j = JSON.stringify(st); if (j === lastStatusJson) return; lastStatusJson = j; circle.pushStatus(st).catch(() => { const { items, ...rest } = st; return circle.pushStatus(rest); }).catch(() => {}).then(() => { if (S.social) S.social.at = 0; if (tab === 'circle') circleRefresh(true); }); }, 1200);
 }
 let circleBusy = false, circleErr = '';
 async function circleRefresh(force) {
@@ -868,7 +889,7 @@ function viewCircle() {
   const sh = S.share || []; const opts = shareable();
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 2px">Co sdílím</h3><p class="note" style="margin:0 0 10px">Ostatní uvidí jen počet splněných z těchto aktivit (${sh.length} / ${opts.length}). Názvy ani poznámky nevidí nikdy.</p>
     <div class="sharegrid">${opts.map(t => `<button class="sharebtn ${sh.includes(t.id) ? 'on' : ''}" data-share="${t.id}" aria-pressed="${sh.includes(t.id)}"><span class="ticon ${t.img ? 'img' : t.ms ? 'img ch' : ''}">${t.img ? actIcon(t.img) : t.ms ? `<img src="img/challenges/${t.id}.webp" alt="">` : t.ic}</span><span>${esc(t.t)}</span></button>`).join('')}</div>
-    ${sh.length ? '' : '<p class="note" style="margin:10px 0 0">Zatím nesdílíš nic – v kruhu se ukážeš jen jménem.</p>'}</section>`;
+    ${sh.length ? '<p class="note" style="margin:10px 0 0">Ostatní si tě můžou rozkliknout a vidět názvy těchto aktivit a fajfky za dnešek.</p>' : '<p class="note" style="margin:10px 0 0">Zatím nesdílíš nic – v kruhu se ukážeš jen jménem.</p>'}</section>`;
   if (!data) { h += `<p class="note" style="text-align:center">Načítám kruhy…</p>`; return h + '</div></div>'; }
   // moje kruhy
   const myId = circle.uid();
@@ -876,12 +897,14 @@ function viewCircle() {
     const mem = data.members.filter(m => m.circle_id === c.id);
     const todayN = data.nudges.filter(n => n.circle_id === c.id && n.day === TODAY);
     const rows = mem.map(m => {
-      const st = data.status[m.user_id] || {}; const isMe = m.user_id === myId;
+      const st = m.user_id === myId ? Object.assign({}, data.status[m.user_id] || {}, myStatus()) : (data.status[m.user_id] || {}); const isMe = m.user_id === myId;
       const fresh = st.day === TODAY; const sentToday = todayN.filter(n => n.from_user === myId && n.to_user === m.user_id).length;
       const got = todayN.filter(n => n.to_user === m.user_id).length;
-      const prog = fresh && st.total ? `${st.done} / ${st.total}` : (fresh ? 'nic nesdílí' : 'ještě nezačal');
-      return `<div class="crow ${isMe ? 'me' : ''}">${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Klíček')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}</span></div>
-        ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>`;
+      const prog = fresh && st.total ? `dnes ${st.done} z ${st.total} sdílených` : (fresh ? 'nic nesdílí' : 'dnes ještě nic');
+      const items = Array.isArray(st.items) ? st.items : []; const openM = S.openMember === m.user_id && fresh && items.length;
+      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Klíček')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
+        ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>
+        ${openM ? `<div class="mitems">${items.map(it => `<span class="${it.done ? 'on' : ''}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<i>${esc(it.ic || '•')}</i>`}${esc(it.t)}${it.done ? ' ✓' : ''}</span>`).join('')}</div>` : ''}`;
     }).join('');
     const mine = todayN.filter(n => n.to_user === myId).map(n => { const st = data.status[n.from_user] || {}; return `${esc(st.nick || 'někdo')}: ${esc(circle.KINDS[n.kind] || n.kind)}`; });
     h += `<section class="card" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="font-size:20px;margin:0">${esc(c.name)}</h3><span class="code" title="Kód pro připojení">${esc(c.code)}</span></div>
@@ -903,6 +926,15 @@ function viewCircle() {
   return h + '</div></div>';
 }
 
+// Velké cíle: dlouhodobá věc (six-pack, maraton, milion na účtu) s velkou odměnou v mincích
+const GOAL_COINS = [50, 75, 100];
+function goalsCard() {
+  const gs = S.goals || []; const open = gs.filter(g => !g.done), done = gs.filter(g => g.done);
+  return `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 2px">Velké cíle</h3><p class="note" style="margin:0 0 10px">Jedna velká věc na měsíce: six-pack, první maraton, našetřená rezerva. Až ji splníš, odškrtni ji a vezmi si mince.</p>
+    ${open.map(g => `<div class="crow"><div class="cinfo"><b>${esc(g.t)}</b><span class="note">odměna 🪙 ${g.coins}</span></div><button class="btn sec" data-goaldone="${g.id}" style="width:auto;padding:8px 12px">Splněno</button><button class="px" data-goaldel="${g.id}" aria-label="Smazat">×</button></div>`).join('')}
+    ${done.map(g => `<div class="crow" style="opacity:.6"><div class="cinfo"><b>✓ ${esc(g.t)}</b><span class="note">🪙 ${g.coins} připsáno</span></div></div>`).join('')}
+    ${open.length < 3 ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><input id="goalt" class="inp" maxlength="60" placeholder="Můj velký cíl" style="flex:1;min-width:160px"><select id="goalc" class="inp" style="width:auto">${GOAL_COINS.map(c => `<option value="${c}">🪙 ${c}</option>`).join('')}</select><button class="btn" id="goaladd" style="width:auto;padding:10px 14px">Přidat</button></div>` : '<p class="note" style="margin:8px 0 0">Max 3 otevřené cíle. Nejdřív jeden dotáhni.</p>'}</section>`;
+}
 function viewMore() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
   if (has('levels')) h += levelCard(level());
@@ -925,6 +957,7 @@ function viewMore() {
       return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
   }
   if (window.native && native.isNative) h += remCard();
+  h += goalsCard();
   h += cloudCard();
   h += `<section class="card">
     ${has('night') ? `<div class="row"><div><b>Noční les</b><span>Tmavý motiv</span></div><button class="sw ${S.theme === 'dark' ? 'on' : ''}" id="themeSw" role="switch" aria-checked="${S.theme === 'dark'}" aria-label="Noční les"></button></div>` : ''}
@@ -1089,7 +1122,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1107,6 +1140,10 @@ document.addEventListener('click', e => {
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
   if (t.id === 'nameOk') { const v = (document.getElementById('menick').value || '').trim().slice(0, 24); if (!v) return; S.me = S.me || {}; S.me.nick = v; save(); render(); return; }
+  if (t.id === 'goaladd') { const v = (document.getElementById('goalt').value || '').trim().slice(0, 60); const c = +document.getElementById('goalc').value || 50; if (!v) { toast('Napiš, co je ten cíl.'); return; } S.goals = S.goals || []; S.goals.push({ id: 'g' + Date.now(), t: v, coins: c }); save(); render(); return; }
+  if (ds.goaldone) { const g = (S.goals || []).find(x => x.id === ds.goaldone); if (!g || !confirm(`Opravdu splněno: ${g.t}? Připíšu ti 🪙 ${g.coins}.`)) return; g.done = Date.now(); save(); render(); toast(`Velký cíl splněn. +${g.coins} mincí do zahrady. 🎉`); return; }
+  if (ds.goaldel) { S.goals = (S.goals || []).filter(x => x.id !== ds.goaldel); save(); render(); return; }
+  if (ds.member) { S.openMember = S.openMember === ds.member ? null : ds.member; render(); return; }
   if (ds.unpick) { S.active = (S.active || []).filter(x => x !== ds.unpick); save(); render(); toast('Aktivita odebrána. Záznamy zůstávají, kdykoli ji přidáš zpět.'); return; }
   if (ds.unprog) { S.programs = (S.programs || []).filter(x => x !== ds.unprog); save(); render(); toast('Výzva vypnutá. Záznamy zůstávají.'); return; }
   if (ds.delcustom) { if (!confirm('Smazat vlastní aktivitu? Záznamy v kalendáři zůstanou.')) return; S.custom = (S.custom || []).filter(c => c.id !== ds.delcustom); S.active = (S.active || []).filter(x => x !== ds.delcustom); save(); render(); return; }
@@ -1120,7 +1157,7 @@ document.addEventListener('click', e => {
   if (t.id === 'cjoin') { const c = (document.getElementById('ccode').value || '').trim().toUpperCase(); if (c.length < 6) { toast('Kód má 6 znaků.'); return; } t.disabled = true; circle.join(c).then(r => { toast(`Jsi v kruhu ${r.name}.`); pendingCode = ''; try { localStorage.removeItem('klicek-kruh'); } catch (e) {} return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
   if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
-  if (ds.sellyes) { const it = itemById(ds.sellyes); if (it && owned(it.id) && !ALL_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
+  if (ds.sellyes) { const it = itemById(ds.sellyes); if (it && owned(it.id) && !ALL_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.garden.fee = (S.garden.fee || 0) + (it.price - sellPrice(it)); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${sellPrice(it)} mincí.`); } return; }
   if (ds.buy) { const it = itemById(ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
   if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; const p = PLACES.find(x => x.id === ds.scene); if (p && !placeOpen(p)) { S.placeHint = p.id; render(); return; } S.placeHint = null; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }

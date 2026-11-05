@@ -19,7 +19,7 @@
       if (!ids.length) return { circles: [], members: [], status: {}, nudges: [] };
       const [m, st, nd, po] = await Promise.all([
         s.from('members').select('circle_id,user_id,joined_at').in('circle_id', ids),
-        s.from('status').select('user_id,nick,avatar,day,done,total,streak,mood,updated_at'),
+        s.from('status').select('*'),
         s.from('nudges').select('id,circle_id,from_user,to_user,kind,day,created_at').gte('day', new Date(Date.now() - 864e5).toISOString().slice(0, 10)).order('created_at', { ascending: false }).limit(200),
         s.from('posts').select('id,circle_id,user_id,to_user,text,created_at').order('created_at', { ascending: false }).limit(120)
       ]);
