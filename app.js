@@ -355,6 +355,9 @@ function scene(h = 260) {
 
 // ---------- ui state ----------
 let tab = 'home', cur = TODAY, calMonth = TODAY.slice(0, 7);
+// odkaz s kódem kruhu (…/cesta-lesem/?kruh=ABC123) otevře Kruh s předvyplněným kódem
+let pendingCode = '';
+try { const q = new URLSearchParams(location.search).get('kruh'); if (q) { localStorage.setItem('klicek-kruh', q.toUpperCase().slice(0, 6)); history.replaceState(null, '', location.pathname); } pendingCode = localStorage.getItem('klicek-kruh') || ''; if (pendingCode) tab = 'circle'; } catch (e) {}
 const openSet = new Set(['les']);
 const app = document.getElementById('app');
 
@@ -415,6 +418,12 @@ function moodLead(mood, hour, nDone, total) {
 // jméno: přezdívka z nastavení, jinak křestní jméno z Googlu
 function userName() { const n = S.me && S.me.nick; if (n) return n; const u = window.cloud && cloud.user(); const m = u && u.user_metadata; return m ? (m.given_name || (m.full_name || '').split(' ')[0] || '') : ''; }
 function nameCard() { if (userName()) return ''; return `<section class="card" style="padding:12px 16px"><b>Jak ti má Klíček říkat?</b><div style="display:flex;gap:8px;margin-top:8px"><input id="menick" class="inp" maxlength="24" placeholder="Křestní jméno" style="flex:1"><button class="btn" id="nameOk" style="width:auto;padding:10px 14px">Uložit</button></div></section>`; }
+// pozvánka do Kruhu na Domů, dokud uživatel v žádném není (Kruhy jsou dostupné od prvního dne)
+function circleTeaser() {
+  const inCircle = S.social && S.social.data && S.social.data.circles && S.social.data.circles.length;
+  if (inCircle || S.teaserOff) return '';
+  return `<section class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><img class="av" src="img/avatars/leaf.webp" alt="" style="width:44px;height:44px"><div style="flex:1"><b>Kruh: držte si palce navzájem</b><span class="note" style="display:block">Rodina nebo kamarádi vidí jen to, co sdílíš. Žádný žebříček.</span></div><button class="btn sec" data-tab="circle" style="width:auto;padding:8px 12px;font-size:14px">Otevřít</button></section>`;
+}
 function viewHome() {
   const w = walks(), run = curRun('les'), nu = nextUnlock(), lesToday = done('les', TODAY);
   const hour = new Date().getHours();
@@ -441,7 +450,7 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${nameCard()}${gestCard()}
+    ${nameCard()}${circleTeaser()}${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po procházce č. ${nu.n}. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
@@ -883,7 +892,7 @@ function viewCircle() {
   // založit / připojit
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 8px">${data.circles.length ? 'Další kruh' : 'Založ kruh nebo se připoj'}</h3>
     <div style="display:flex;gap:8px;margin-bottom:10px"><input id="cname" class="inp" placeholder="Název, třeba Rodina" maxlength="40" style="flex:1"><button class="btn" id="ccreate" style="width:auto;padding:10px 14px">Založit</button></div>
-    <div style="display:flex;gap:8px"><input id="ccode" class="inp" placeholder="Kód od kamaráda" maxlength="6" autocapitalize="characters" style="flex:1;text-transform:uppercase;letter-spacing:.15em"><button class="btn sec" id="cjoin" style="width:auto;padding:10px 14px">Připojit</button></div></section>
+    <div style="display:flex;gap:8px"><input id="ccode" class="inp" placeholder="Kód od kamaráda" maxlength="6" autocapitalize="characters" value="${esc(pendingCode || '')}" style="flex:1;text-transform:uppercase;letter-spacing:.15em"><button class="btn sec" id="cjoin" style="width:auto;padding:10px 14px">Připojit</button></div></section>
     <p class="note" style="text-align:center">Za každý poslaný palec máš minci (max 3 denně), za každý přijatý taky.</p>`;
   return h + '</div></div>';
 }
@@ -1098,11 +1107,11 @@ document.addEventListener('click', e => {
   if (ds.prog) { S.programs = S.programs || []; S.programs = S.programs.includes(ds.prog) ? S.programs.filter(x => x !== ds.prog) : [...S.programs, ds.prog]; save(); render(); return; }
   if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
   if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }
-  if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }
+  if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/?kruh=${ds.shareCode}`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }
   if (ds.nudge) { if (circleBusy) return; const [cid, to] = ds.nudge.split('|'); circleBusy = true; t.disabled = true; circle.nudge(cid, to, 'palec').then(() => { toast('Palec poslán 💪'); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); render(); }).finally(() => { circleBusy = false; }); return; }
   if (ds.leave) { if (!confirm('Opravdu opustit kruh?')) return; circle.leave(ds.leave).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
   if (t.id === 'ccreate') { const n = (document.getElementById('cname').value || '').trim(); if (!n) { toast('Napiš název kruhu.'); return; } t.disabled = true; circle.create(n).then(r => { toast(`Kruh založen. Kód: ${r.code}`); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
-  if (t.id === 'cjoin') { const c = (document.getElementById('ccode').value || '').trim().toUpperCase(); if (c.length < 6) { toast('Kód má 6 znaků.'); return; } t.disabled = true; circle.join(c).then(r => { toast(`Jsi v kruhu ${r.name}.`); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
+  if (t.id === 'cjoin') { const c = (document.getElementById('ccode').value || '').trim().toUpperCase(); if (c.length < 6) { toast('Kód má 6 znaků.'); return; } t.disabled = true; circle.join(c).then(r => { toast(`Jsi v kruhu ${r.name}.`); pendingCode = ''; try { localStorage.removeItem('klicek-kruh'); } catch (e) {} return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
   if (ds.resetpos) { if (S.garden && S.garden.pos) delete S.garden.pos[S.garden.scene || 'path']; save(); render(); return; }
   if (ds.sellno) { S.sell = null; render(); return; }
   if (ds.sellyes) { const it = itemById(ds.sellyes); if (it && owned(it.id) && !ALL_ITEMS.some(o => o.needs === it.id && owned(o.id))) { S.garden.owned = S.garden.owned.filter(x => x !== it.id); S.sell = null; save(); render(); toast(`${it.t}: prodáno za ${it.price} mincí.`); } return; }
