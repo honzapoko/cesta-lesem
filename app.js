@@ -15,6 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
+const APP_VERSION = '1.21'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -967,7 +968,7 @@ function viewMore() {
       <label class="btn sec" style="text-align:center;cursor:pointer">Obnovit ze zálohy<input type="file" id="imp" accept="application/json,.json" hidden></label>
       <div id="impConfirm"></div>
     </div></section>
-    <p class="note" style="text-align:center">Klíček · pomalu, ale jistě</p>
+    <p class="note" style="text-align:center">Klíček · pomalu, ale jistě · verze ${APP_VERSION}</p>
   </div></div>`;
   return h;
 }

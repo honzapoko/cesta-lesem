@@ -1,6 +1,6 @@
-# HANDOFF.md – stav projektu Klíček (4. 11. 2026)
+# HANDOFF.md – stav projektu Klíček (6. 11. 2026, verze 1.21)
 
-Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla) a tenhle soubor (stav). Pak není potřeba nic dalšího.
+Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
 ## 1. Kde co je
 | Co | Kde |
@@ -28,8 +28,8 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla) a tenhle soubor (st
 - **Cloud sync**: `days` (per den) + `profiles` (klíče `PROFILE_KEYS`), merge novější vyhrává (`pullMerge`).
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
-0. **Tomáš (syn) testuje** – zpětná vazba 4. 11. vyřešena (jméno, osobní úkoly). Další zpětnou vazbu od dětí čekat.
-1. **Ověřit vzkazy** – Honza musel spustit `circles_v2_posts.sql`; zkontrolovat v `list_tables`, že `posts` existuje. Honzův kruh: kód **PUTF45**.
+0. **Tom (syn) testuje a posílá zpětnou vazbu** – vše z 4.–5. 11. vyřešeno (CHANGELOG 1.16–1.21). Nevyjasněno: Tom tvrdí, že na Androidu se zapnutí/vypnutí aktivity projeví až po restartu – na webu nereprodukováno; při další zprávě chtít přesný postup.
+1. **Ověřit SQL v3** – Honza má spustit `supabase/circles_v3.sql` (vzkazy + `status.items`); k 6. 11. 00:30 tabulka `posts` v DB NEBYLA. Ověřit `list_tables`. Kruh „Rodina“: kód **PUTF45**, členové Jan (Honza) a Tom.
 2. **Děti do kruhu** – přihlášení přes Google na webu (jsou v test users), zadat kód. Případně jim nahrát Android appku (stejný postup jako Honzovi, jiný telefon = `adb devices`).
 3. **Oslavy v kruhu** – když člen splní celý sdílený den / metu, ostatním se ukáže s konfetami + tlačítko Pogratulovat (`kind: 'gratulace'` už v `nudges` existuje).
 4. **Notifikace z kruhu** – Supabase Realtime na `nudges`/`posts` → v appce toast, na Androidu lokální oznámení.

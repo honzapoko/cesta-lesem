@@ -21,7 +21,7 @@ Každá změna webu je tedy automaticky i změnou appky – stačí commit + pus
 - Render: `render()` → `views[tab]()` vrací HTML string. Žádné průběžné DOM mutace kromě timeru.
 - Fonty: Baloo 2 + Nunito (Fredoka NE – chybí č/ě/ů).
 - Obrázky: `img/*.webp`; aktivity `img/acts/<id>.webp` (192×192 nebo 192×146), zahrada `img/garden/`, lokality `img/places/<lokalita>/<id>.webp`, avatary `img/avatars/`. Obrázky od Honzy přicházejí z ChatGPT na krémovém pozadí – řezat skriptem (viz HANDOFF „Řezání obrázků“).
-- Po každé změně JS/CSS: zvýšit `?v=N` u všech `<script>` v `index.html` a `lenochod-vN` v `sw.js` (GitHub Pages cachuje 10 min).
+- **Verzování**: po každé změně kódu zvýšit trojici `APP_VERSION` (`app.js`, formát `1.N`), `?v=N` u všech `<script>` v `index.html` a `lenochod-vN` v `sw.js` (stejné N) a zapsat řádek do `CHANGELOG.md`: co + **proč** (kdo to chtěl / jaký problém to řeší). GitHub Pages cachuje 10 min, bez verze uživatel vidí starý kód.
 - Nový JS soubor = přidat i do `scripts/build-www.mjs` (seznam kopírovaných souborů).
 
 ## Ověření před pushem
@@ -30,6 +30,7 @@ Každá změna webu je tedy automaticky i změnou appky – stačí commit + pus
 - Android kód tady nejde zkompilovat (bez SDK) – XML aspoň zvalidovat, Java zkontrolovat očima, Honza buildí.
 
 ## Git
+- Před commitem: `CHANGELOG.md` doplněn, verze zvednutá; na konci vlákna `HANDOFF.md` aktualizovaný (datum, stav, další kroky, nové pasti).
 - Commit jako `user.name="Honza Pokorný"`, `user.email=ing.honza.pokorny@gmail.com`, zpráva česky.
 - Na konec commit message přidat řádky, které dává systémová připomínka (Co-Authored-By + Claude-Session).
 - Push rovnou do `main` (je to Honzův osobní projekt, žádné PR).
