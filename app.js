@@ -19,7 +19,7 @@ const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
 // migrace: dřív byly všechny kroky pevné; kdo je používal, dostane je jako zapnuté programy
-if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['zena', 'vecer', 'spanek', 'medit', 'pohyb'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
+if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['les', 'zena', 'vecer', 'spanek', 'medit', 'pohyb'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
@@ -36,8 +36,8 @@ function bestWeekRun(id) { const wk = [...new Set(doneDays(id).map(weekKey))].so
 // ---------- content ----------
 const STEPS = [
   // 0 = základ pro každého; ostatní jsou volitelné výzvy (S.programs), zapínají se v „Moje aktivity“ → Výzvy
-  { id: 'les', ic: '🌲', t: 'Ranní procházka s vděčností', sub: 'Bez telefonu, klidně 15 minut.', kind: 'day', note: 'grat',
-    why: 'Začátek dne, který tě nabíjí. Procházky odemykají vylepšení appky.',
+  { id: 'les', ic: '🌲', t: 'Ranní procházka s vděčností', sub: 'Bez telefonu, klidně 15 minut.', kind: 'day', note: 'grat', prog: 'Ranní procházka s vděčností', pd: 'Každé ráno ven, bez telefonu, a tři věci, za které jsi vděčný. Mince navíc za každou procházku.',
+    why: 'Začátek dne, který tě nabíjí.',
     ms: [{ id: 'les-1', l: '7 procházek za 10 dní', goal: 7, val: () => bestWindow('les', 10) }, { id: 'les-2', l: '30 procházek celkem', goal: 30, val: () => count('les') }] },
   { id: 'zena', ic: '💛', t: 'Hezká věc pro partnerku', sub: 'Všimni si jí a klidně to řekni nahlas.', kind: 'day', note: 'text', ph: 'Čeho sis dnes na ní všiml?', prog: 'Pro partnerku', pd: 'Denně jedna hezká věc, kterou si na ní všimneš, plus program 30 malých gest bez tlaku.',
     why: 'Trénink vnímání toho dobrého: úsměv, laskavost, péče.',
@@ -68,7 +68,7 @@ const STEPS = [
     ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] }
 ];
 const msMet = m => m.val() >= m.goal;
-const stepOpen = i => i === 0 || (S.programs || []).includes(STEPS[i].id);
+const stepOpen = i => (S.programs || []).includes(STEPS[i].id);
 
 const UNLOCKS = [
   { n: 1, id: 'week', t: 'Týdenní řádka', d: 'Na domovské obrazovce uvidíš celý týden.', tab: 'home', where: 'Domů, pod maskotem' },
@@ -80,9 +80,14 @@ const UNLOCKS = [
   { n: 7, id: 'stats', t: 'Statistiky', d: 'Grafy a úspěšnost za týden a měsíc.', tab: 'stats', where: 'záložka Statistiky' },
   { n: 8, id: 'diary', t: 'Deník vděčnosti', d: 'Všechno, za co jsi byl vděčný, na jednom místě.', tab: 'more', where: 'záložka Více' },
   { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Semínka po Les.', tab: 'home', where: 'Domů a Více' },
-  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset procházek. Klíček to oslaví.', tab: 'home', where: 'Domů, u maskota' }
+  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset aktivních dní. Klíček to oslaví.', tab: 'home', where: 'Domů, u maskota' }
 ];
-const walks = () => count('les');
+// postup appky = aktivní dny (den s aspoň jedním splněným úkolem), ne konkrétní návyk
+const anyDone = day => { const L = S.logs[day]; return !!L && Object.values(L).some(e => e && e.d); };
+const activeDaysList = () => Object.keys(S.logs).filter(anyDone).sort();
+const walks = () => activeDaysList().length;
+function dayRun() { let d = anyDone(TODAY) ? TODAY : addDays(TODAY, -1), n = 0; while (anyDone(d)) { n++; d = addDays(d, -1); } return n; }
+function bestDayRun() { let best = 0, run = 0, prev = null; for (const d of activeDaysList()) { run = (prev && addDays(prev, 1) === d) ? run + 1 : 1; best = Math.max(best, run); prev = d; } return best; }
 const has = id => { const u = UNLOCKS.find(x => x.id === id); return !!u && walks() >= u.n; };
 const nextUnlock = () => UNLOCKS.find(u => walks() < u.n);
 
@@ -101,7 +106,7 @@ const QUOTES = [
   'Nemusíš to zvládnout celé. Jen dnešek.',
   'Jasnost, kterou hledáš, už v tobě je.',
   'Vděčnost není popírání starostí. Je to světlo vedle nich.',
-  'Dokončovatel potřebuje cílovou čáru. Dnes je to procházka.',
+  'Dokončovatel potřebuje cílovou čáru. Dnes je to jedna fajfka.',
   'Tvoje děti si budou pamatovat, že jsi byl s nimi. Ne kolik jsi měl.',
   'Každá fajfka je důkaz, že to jde.',
   'Pomalá cesta je pořád cesta.',
@@ -175,14 +180,14 @@ function viewPick() {
     <h3 class="pick-h">Vlastní</h3>
     <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
     ${sec}
-    <p class="note">Ranní procházka s vděčností zůstává vždy; tady si přidáváš, co chceš sledovat navíc.</p>
+    <p class="note">Každý splněný úkol se počítá. Den s aspoň jedním splněným úkolem je „aktivní den“ a ty odemykají vylepšení appky.</p>
   </div></div>`;
 }
 
 // ---------- připomínky per aktivita ----------
 const DEF_RULE = { mode: 'off', at: '08:00', every: 60, from: '08:00', to: '20:00', channel: 'gentle' };
 function remItems() {
-  const base = [{ key: 'les', t: 'Ranní procházka s vděčností', img: 'img/acts/ranni-prochazka.webp', def: { mode: 'daily', at: '07:00' } }, { key: 'evening', t: 'Zapiš si den', img: 'img/acts/denik.webp', def: { mode: 'daily', at: '20:30' } }];
+  const base = [...((S.programs || []).includes('les') ? [{ key: 'les', t: 'Ranní procházka s vděčností', img: 'img/acts/ranni-prochazka.webp', def: { mode: 'daily', at: '07:00' } }] : []), { key: 'evening', t: 'Zapiš si den', img: 'img/acts/denik.webp', def: { mode: 'daily', at: '20:30' } }];
   const acts = activeTasks().map(a => ({ key: a.id, t: a.t, img: a.img ? `img/acts/${a.img}.webp` : null, def: { mode: 'off' } }));
   return base.concat(acts);
 }
@@ -290,7 +295,7 @@ function viewDashboard() {
       ${u ? `<button class="btn sec" id="cloudSync" style="width:auto;padding:10px 16px;font-size:14px">Synchronizovat</button>` : `<button class="btn" id="cloudIn" style="width:auto;padding:10px 16px;font-size:14px">Přihlásit přes Google</button>`}</div>
     ${!u ? `<section class="card" style="padding:16px"><b>Tady uvidíš své statistiky a odznaky.</b><p class="note" style="margin:6px 0 0">Přihlas se stejným Google účtem, který jsi propojil v telefonu (Více → Cloud a web). Data z telefonu se sem načtou.</p></section>` : ''}
     <section class="card level"><div class="m">${mascot('happy', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>
-    <div class="tiles tiles4"><div class="tile"><b>${walks()}</b><span>procházek</span></div><div class="tile"><b>${curRun('les')}</b><span>dní v řadě</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${metN}/${badges.length}</b><span>odznaků</span></div></div>
+    <div class="tiles tiles4"><div class="tile"><b>${walks()}</b><span>aktivních dní</span></div><div class="tile"><b>${dayRun()}</b><span>dní v řadě</span></div><div class="tile"><b>${bestDayRun()}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${metN}/${badges.length}</b><span>odznaků</span></div></div>
     <div class="dash-cols">
       <section class="card" style="padding:14px"><h3 style="font-size:18px">Splněné úkoly za 7 dní</h3>
         <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
@@ -300,7 +305,7 @@ function viewDashboard() {
     <h3 style="font-size:20px;margin:6px 0 0">Odznaky</h3>
     <div class="rgrid rgrid3">${badges.map(({ s, i, m }) => { const met = msMet(m), v = Math.min(m.val(), m.goal); return `<div class="rcard ${met ? 'met' : ''} ${stepOpen(i) ? '' : 'lockd'}"><b>${met ? '🏅 ' : ''}${esc(m.l)}</b><span>${s.ic} ${esc(s.t)}</span><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><span>${met ? 'Splněno' : v + ' / ' + m.goal}${S.rewards[m.id] ? ' · 🎁 ' + esc(S.rewards[m.id]) : ''}</span></div>`; }).join('')}</div>
     <h3 style="font-size:20px;margin:6px 0 0">Odemčené funkce</h3>
-    <div class="rgrid rgrid3">${UNLOCKS.map(x => { const ok = walks() >= x.n; return `<div class="rcard ${ok ? 'met' : 'lockd'}"><b>${ok ? '✓ ' : ''}${esc(x.t)}</b><span>${ok ? esc(x.d) : 'Procházka č. ' + x.n}</span></div>`; }).join('')}</div>
+    <div class="rgrid rgrid3">${UNLOCKS.map(x => { const ok = walks() >= x.n; return `<div class="rcard ${ok ? 'met' : 'lockd'}"><b>${ok ? '✓ ' : ''}${esc(x.t)}</b><span>${ok ? esc(x.d) : 'Aktivní den č. ' + x.n}</span></div>`; }).join('')}</div>
     ${days.length ? `<h3 style="font-size:20px;margin:6px 0 0">Deník</h3><div class="diary">${days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
       return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('')}</div>` : ''}
   </div>`;
@@ -424,10 +429,11 @@ function circleTeaser() {
   if (inCircle || S.teaserOff) return '';
   return `<section class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><img class="av" src="img/avatars/leaf.webp" alt="" style="width:44px;height:44px"><div style="flex:1"><b>Kruh: držte si palce navzájem</b><span class="note" style="display:block">Rodina nebo kamarádi vidí jen to, co sdílíš. Žádný žebříček.</span></div><button class="btn sec" data-tab="circle" style="width:auto;padding:8px 12px;font-size:14px">Otevřít</button></section>`;
 }
+function emptyCard() { if (visibleTasks().length || activeTasks().length) return ''; return `<section class="card" style="padding:14px 16px"><b>Začni jednou věcí</b><p class="note" style="margin:4px 0 10px">Vyber si aktivitu nebo výzvu, kterou chceš sledovat. Stačí jedna; přidávat můžeš kdykoli.</p><button class="btn" data-tab="pick">Vybrat aktivity</button></section>`; }
 function viewHome() {
-  const w = walks(), run = curRun('les'), nu = nextUnlock(), lesToday = done('les', TODAY);
+  const w = walks(), run = dayRun(), nu = nextUnlock(), lesToday = anyDone(TODAY);
   const hour = new Date().getHours();
-  const bubble = lesToday ? (nu ? `Zítra po lese odemkneš: ${nu.t}` : 'Všechno odemčeno. Jsi borec!') : (nu ? `Po procházce odemkneš: ${nu.t}` : 'Jdeme do lesa?');
+  const bubble = lesToday ? (nu ? `Zítra odemkneš: ${nu.t}` : 'Všechno odemčeno. Jsi borec!') : (nu ? `Dnes odemkneš: ${nu.t}` : 'Jdeme na to?');
   const tasks = visibleTasks().concat(activeTasks()), nDone = tasks.filter(isDoneFor).length;
   const mood = homeMood(hour, nDone, tasks.length, cur === TODAY), lead = moodLead(mood, hour, nDone, tasks.length);
   const d = fromIso(cur);
@@ -442,17 +448,17 @@ function viewHome() {
       <div class="bubble"><i>🦥</i><span>${esc(bubble)}</span></div></div>
     <div class="sheet gut"><div class="inner">
     <div class="pill-row">
-      <div class="pill">${I.tree}<div><b>${w}</b><br><span>${plural(w, 'procházka', 'procházky', 'procházek')}</span></div></div>
-      ${has('levels') ? `<div class="pill">${I.star}<div><b>${level().x}</b><br><span>XP · ${level().name}</span></div></div>` : `<div class="pill">${I.leaf}<div><b>${bestRun('les')}</b><br><span>nejdelší šňůra</span></div></div>`}
+      <div class="pill">${I.tree}<div><b>${w}</b><br><span>${plural(w, 'aktivní den', 'aktivní dny', 'aktivních dní')}</span></div></div>
+      ${has('levels') ? `<div class="pill">${I.star}<div><b>${level().x}</b><br><span>XP · ${level().name}</span></div></div>` : `<div class="pill">${I.leaf}<div><b>${bestDayRun()}</b><br><span>nejdelší šňůra</span></div></div>`}
     </div>`;
   if (has('week')) html += weekStrip();
   if (has('quote')) html += `<div class="quote"><div class="qi">🍃</div><div><small>Věta na den</small>${esc(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length])}</div></div>`;
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${nameCard()}${circleTeaser()}${gestCard()}
+    ${nameCard()}${emptyCard()}${circleTeaser()}${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
-  if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po procházce č. ${nu.n}. ${esc(nu.d)}</span></div></div>`;
+  if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po ${nu.n}. aktivním dni. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
 }
 
@@ -473,8 +479,8 @@ function gestCard() {
 
 function weekStrip() {
   const start = weekKey(TODAY), lo = addDays(TODAY, -BACK);
-  return `<div class="week">${WD.map((n, k) => { const day = addDays(start, k), can = day <= TODAY && day >= lo, d = fromIso(day), cls = `wd ${done('les', day) ? 'on' : ''} ${day === TODAY ? 'today' : ''} ${day === cur ? 'cur' : ''}`, inner = `${n}<i>${done('les', day) ? I.check : ''}</i>`;
-    return can ? `<button class="${cls}" data-goto="${day}" aria-label="${DAYNAMES[d.getDay()]} ${d.getDate()}. ${d.getMonth() + 1}.${done('les', day) ? ', les splněn' : ''}">${inner}</button>` : `<div class="${cls} off">${inner}</div>`; }).join('')}</div>`;
+  return `<div class="week">${WD.map((n, k) => { const day = addDays(start, k), can = day <= TODAY && day >= lo, d = fromIso(day), cls = `wd ${anyDone(day) ? 'on' : ''} ${day === TODAY ? 'today' : ''} ${day === cur ? 'cur' : ''}`, inner = `${n}<i>${done('les', day) ? I.check : ''}</i>`;
+    return can ? `<button class="${cls}" data-goto="${day}" aria-label="${DAYNAMES[d.getDay()]} ${d.getDate()}. ${d.getMonth() + 1}.${anyDone(day) ? ', splněno' : ''}">${inner}</button>` : `<div class="${cls} off">${inner}</div>`; }).join('')}</div>`;
 }
 
 function taskHtml(s) {
@@ -522,7 +528,7 @@ function coinsEarned() {
     for (const id in L) if (L[id] && L[id].d) { n++; c += id === 'les' ? 3 : 1; }
     if (n && S.fullDays && S.fullDays[day]) c += 3;
   }
-  c += Math.floor(bestRun('les') / 7) * 10;
+  c += Math.floor(bestDayRun() / 7) * 10;
   if (S.social && S.social.coins) c += (S.social.coins.sent || 0) + (S.social.coins.received || 0);
   return c;
 }
@@ -538,7 +544,7 @@ const SCENES = [
 ];
 // další místa (koncept Kruhy, kap. 4): vlastní předměty přijdou, zatím se v nich Klíček jen usadí
 const PLACES = [
-  { id: 'forest', t: 'Lesní mýtina', light: 'right', cond: 'Odemkne 30 ranních lesů', ok: () => doneDays('les').length >= 30 },
+  { id: 'forest', t: 'Lesní mýtina', light: 'right', cond: 'Odemkne 30 aktivních dní', ok: () => walks() >= 30 },
   { id: 'cabin', t: 'Horská chata', light: 'right', cond: 'Odemkne úroveň Stromek', ok: () => level().i >= 3 },
   { id: 'observatory', t: 'Noční observatoř', light: 'right', cond: 'Odemkne 30 nocí „Spát včas“', ok: () => doneDays('spanek').length >= 30 },
   { id: 'beach', t: 'Pláž a moře', light: 'right', cond: 'Odemkne společná výzva Kruhu (brzy)', ok: () => false },
@@ -765,8 +771,8 @@ function viewCalendar() {
   let cells = WD.map(w => `<div class="h">${w}</div>`).join('') + '<div></div>'.repeat(off);
   let walksM = 0;
   for (let k = 1; k <= days; k++) {
-    const day = `${y}-${pad(m)}-${pad(k)}`, w = done('les', day), some = !w && S.logs[day] && Object.values(S.logs[day]).some(e => e.d);
-    if (w) walksM++;
+    const day = `${y}-${pad(m)}-${pad(k)}`, w = !!(S.fullDays && S.fullDays[day]), some = !w && anyDone(day);
+    if (w || some) walksM++;
     const can = day <= TODAY && day >= addDays(TODAY, -BACK);
     cells += `<${can ? 'button' : 'div'} class="cd ${w ? 'walk' : ''} ${some ? 'some' : ''} ${day === TODAY ? 'today' : ''} ${day > TODAY ? 'fut' : ''}" ${can ? `data-goto="${day}"` : ''}>${k}</${can ? 'button' : 'div'}>`;
   }
@@ -774,8 +780,8 @@ function viewCalendar() {
     <h2 class="sec">Kalendář</h2>
     <section class="card cal"><div class="calh"><button data-cal="-1" aria-label="Předchozí měsíc">${I.left}</button><h3 style="font-size:20px">${MONTHS[m - 1]} ${y}</h3><button data-cal="1" aria-label="Další měsíc">${I.right}</button></div>
     <div class="calg">${cells}</div>
-    <div class="legend"><span><i style="background:var(--green)"></i>ranní les</span><span><i style="box-shadow:inset 0 0 0 2.5px var(--green)"></i>jiný úkol</span><span><i style="outline:2.5px solid var(--gold)"></i>dnes</span></div></section>
-    <div class="tiles"><div class="tile"><b>${walksM}</b><span>lesů tento měsíc</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${walks()}</b><span>celkem</span></div></div>
+    <div class="legend"><span><i style="background:var(--green)"></i>celý den</span><span><i style="box-shadow:inset 0 0 0 2.5px var(--green)"></i>něco splněno</span><span><i style="outline:2.5px solid var(--gold)"></i>dnes</span></div></section>
+    <div class="tiles"><div class="tile"><b>${walksM}</b><span>aktivních dní v měsíci</span></div><div class="tile"><b>${bestDayRun()}</b><span>nejdelší šňůra</span></div><div class="tile"><b>${walks()}</b><span>celkem</span></div></div>
     <p class="note">Klepnutím na den z posledního týdne ho můžeš doplnit.</p></div></div>`;
 }
 
@@ -792,7 +798,7 @@ function viewStats() {
     ${has('levels') ? levelCard(lv) : ''}
     <section class="card" style="padding:14px"><h3 style="font-size:18px">Splněné úkoly za 7 dní</h3>
     <div class="bars">${last7.map(d => { const c = cnt(d); return `<div class="bcol"><b>${c}</b><i class="${c ? '' : 'zero'}" style="height:${Math.max(4, c / max * 100)}%"></i><span>${WD[(fromIso(d).getDay() + 6) % 7]}</span></div>`; }).join('')}</div></section>
-    <div class="tiles"><div class="tile"><b>${pct('les')} %</b><span>dní s lesem (30 dní)</span></div><div class="tile"><b>${curRun('les')}</b><span>aktuální šňůra</span></div><div class="tile"><b>${bestRun('les')}</b><span>nejdelší šňůra</span></div></div>
+    <div class="tiles"><div class="tile"><b>${Math.round(last30.filter(anyDone).length / 30 * 100)} %</b><span>aktivních dní (30 dní)</span></div><div class="tile"><b>${dayRun()}</b><span>aktuální šňůra</span></div><div class="tile"><b>${bestDayRun()}</b><span>nejdelší šňůra</span></div></div>
     <section class="card" style="padding:6px 14px"><div style="padding-top:10px"><h3 style="font-size:18px">Za posledních 30 dní</h3></div>
     ${STEPS.filter((s, i) => stepOpen(i) && s.kind === 'day').concat(activeTasks()).map(s => `<div class="arow"><div><span>${s.img ? '' : s.ic + ' '}${esc(s.t)}</span><span>${pct(s.id)} %</span></div><div class="bar"><i style="width:${pct(s.id)}%"></i></div></div>`).join('')}</section>
   </div></div>`;
@@ -901,8 +907,8 @@ function viewMore() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Více</h2>`;
   if (has('levels')) h += levelCard(level());
   // unlock list
-  h += `<section class="card" style="padding:6px 0"><div style="padding:10px 16px 2px"><h3 style="font-size:18px">Odemčená vylepšení</h3><p class="note" style="margin:2px 0 0">Každá ranní procházka odemkne jedno.</p></div>
-    ${UNLOCKS.map(u => { const ok = walks() >= u.n; return `<div class="row"><div><b>${ok ? '✓ ' : ''}${esc(u.t)}</b><span>${ok ? esc(u.d) : 'Procházka č. ' + u.n}</span></div>${ok ? '' : `<span style="color:var(--lock)">${I.lock}</span>`}</div>`; }).join('')}</section>`;
+  h += `<section class="card" style="padding:6px 0"><div style="padding:10px 16px 2px"><h3 style="font-size:18px">Odemčená vylepšení</h3><p class="note" style="margin:2px 0 0">Každý aktivní den (aspoň jeden splněný úkol) odemkne jedno.</p></div>
+    ${UNLOCKS.map(u => { const ok = walks() >= u.n; return `<div class="row"><div><b>${ok ? '✓ ' : ''}${esc(u.t)}</b><span>${ok ? esc(u.d) : 'Aktivní den č. ' + u.n}</span></div>${ok ? '' : `<span style="color:var(--lock)">${I.lock}</span>`}</div>`; }).join('')}</section>`;
   if (has('timer')) h += `<section class="card timer" id="timer"><h3 style="font-size:20px">Meditace</h3>
     <div class="seg">${[5, 10, 20].map(m => `<button data-tmin="${m}" class="${timerMin === m ? 'on' : ''}">${m} min</button>`).join('')}</div>
     <div class="seg snd" aria-label="Zvuk na pozadí">${SOUNDS.map(([id, l]) => `<button data-tsnd="${id}" class="${timerSnd === id ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -1046,7 +1052,7 @@ function afterToggle(id) {
   const msNew = [];
   STEPS.forEach((s, i) => s.ms.forEach(m => { if (msMet(m) && !S.celebrated.includes(m.id)) { S.celebrated.push(m.id); msNew.push({ s, i, m }); } }));
   save();
-  const lesNow = id === 'les' && done('les', cur) && !S.celDays[cur];
+  const lesNow = anyDone(cur) && !S.celDays[cur];
   if (lesNow) S.celDays[cur] = 1;
   if (!lesNow && !fresh.length && !msNew.length) return;
   save();
@@ -1054,11 +1060,11 @@ function afterToggle(id) {
   const goU = fresh.find(u => u.tab !== 'home') || null;
   msNew.forEach(({ s, i, m }) => { lines.push(['Meta splněna', m.l, S.rewards[m.id] ? 'Tvoje odměna: ' + S.rewards[m.id] : 'Napiš si odměnu na Cestě a dopřej si ji.']); if (m === s.ms[0] && STEPS[i + 1]) lines.push(['Nový krok na cestě', STEPS[i + 1].t, STEPS[i + 1].sub]); });
   const nu = nextUnlock();
-  const head = lesNow ? 'Ranní les splněn' : 'Úkol splněn';
-  showCel(head, lines, lesNow && nu ? `Zítra po lese odemkneš: ${nu.t}` : '', goU ? { tab: goU.tab, label: `Vyzkoušet: ${goU.t}` } : null);
+  const head = lesNow ? 'První úkol dne splněn' : 'Úkol splněn';
+  showCel(head, lines, lesNow && nu ? `Zítra odemkneš: ${nu.t}` : '', goU ? { tab: goU.tab, label: `Vyzkoušet: ${goU.t}` } : null);
 }
 function showCel(head, lines, foot, go) {
-  const run = curRun('les');
+  const run = dayRun();
   const el = document.getElementById('cel');
   el.innerHTML = `<h1>Skvělé!</h1><div style="font-weight:800;font-size:18px">${esc(head)}</div><div class="cm">${mascot('cheer', { flower: has('flower') })}</div>
     ${run ? `<div style="font-weight:800">${I.flame.replace('<svg', '<svg width="22" height="22" style="vertical-align:-4px"')} ${run} ${plural(run, 'den', 'dny', 'dní')} v řadě</div>` : ''}
@@ -1088,7 +1094,7 @@ document.addEventListener('click', e => {
   const ds = t.dataset;
   if (ds.tab) {
     const req = { calendar: 'calendar', stats: 'stats' }[ds.tab];
-    if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po procházce č. ${u.n}.`); return; }
+    if (req && !has(req)) { const u = UNLOCKS.find(x => x.id === req); toast(`${u.t} se odemkne po ${u.n}. aktivním dni.`); return; }
     tab = ds.tab; render(); window.scrollTo(0, 0); return;
   }
   if (suppressClick && (ds.sell || ds.drag)) return;
@@ -1167,7 +1173,7 @@ function pushWidget() {
       const saved = cur; cur = TODAY;
       const t = visibleTasks().concat(activeTasks()); const done = t.filter(isDoneFor).length;
       const hour = new Date().getHours(); const mood = homeMood(hour, done, t.length, true);
-      const state = { streak: curRun('les'), done, total: t.length, coins: coins(), lead: moodLead(mood, hour, done, t.length), quote: has('quote') ? QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length] : '', tasks: t.slice(0, 10).map(x => ({ t: x.t, done: isDoneFor(x) })) };
+      const state = { streak: dayRun(), done, total: t.length, coins: coins(), lead: moodLead(mood, hour, done, t.length), quote: has('quote') ? QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length] : '', tasks: t.slice(0, 10).map(x => ({ t: x.t, done: isDoneFor(x) })) };
       cur = saved;
       native.updateWidget(state);
     } catch (e) {}
