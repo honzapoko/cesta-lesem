@@ -1,6 +1,12 @@
-# CHANGELOG – Slothkin (dříve Klíček / Lenochod)
+# CHANGELOG – Poquito (dříve Slothkin / Klíček / Lenochod)
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
+
+## 1.26 – 2026-11-06 (Honza: Poquito, doporučení, jednotné widgety, nová adresa)
+- Nový název **Poquito** (web, manifest, Android, widgety, překlady). – *Honza.*
+- **Doporučení** (Více → Doporuč Poquito, `refCard`, `supabase/referrals_v1.sql`): odkaz `?ref=KOD`; nový uživatel po přihlášení dostane 🪙 20, doporučující 🪙 50 za každého pozvaného s ≥ 3 aktivními dny. Ochrana: ne sám sebe, každý jen jednou, jen účty mladší 14 dní. Mince se přičítají v `coinsEarned` ze `S.social.ref`. – *Honza: odměna za doporučení.*
+- **Widgety jednotně**: střední 4×2 a velký 4×4 mají stejné karty úkolů (ListView) jako widget Úkoly. – *Honza: 3×4 měl jiný design než ostatní.*
+- `PUBLIC_URL` (odkazy z kruhu a doporučení) + **přesun na novou adresu**: na staré `honzapoko.github.io` pruh „Poquito se přestěhovalo“, data se přenesou v `#move=` (fragment, nejde na server). – *Honza nechce v adrese honzapoko/github/cesta-lesem.*
 
 ## 1.25 – 2026-11-06 (Honza: vzhled podle HabitBox a „habit ticker“ widgetu)
 - **Přehled úkolů na Domů** (přepínač Seznam / Přehled, `S.homeView`): barevné karty s ikonou, „x z 7 tento týden“, mřížkou splněných dní za 22 týdnů (sloupec = týden) a velkým kulatým odškrtávátkem (`habitCard`). – *Honzova předloha HabitBox.*

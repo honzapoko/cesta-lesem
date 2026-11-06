@@ -15,10 +15,12 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.25'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.26'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
+// přesun ze staré adresy (honzapoko.github.io): data přijdou v #move=… (fragment se neposílá na server)
+try { if (location.hash.startsWith('#move=')) { const m = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(location.hash.slice(6)))))); history.replaceState(null, '', location.pathname); if (m && m.v === 2 && (!Object.keys(S.logs || {}).length || (m.updatedAt || 0) > (S.updatedAt || 0))) { S = Object.assign(S, m); localStorage.setItem(KEY, JSON.stringify(S)); window.__moved = 1; } } } catch (e) {}
 // migrace: dřív byly všechny kroky pevné; kdo je používal, dostane je jako zapnuté programy
 if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.logs) for (const id in S.logs[d]) if (S.logs[d][id] && S.logs[d][id].d) used.add(id); if (S.gestStart) used.add('zena'); ['les', 'zena', 'vecer', 'spanek', 'medit', 'pohyb'].forEach(id => { if (used.has(id)) S.programs.push(id); }); }
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
@@ -218,7 +220,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView', 'refBy', 'refClaimed'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -292,7 +294,7 @@ function viewDashboard() {
   const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim()).slice(0, 8);
   const p = lv.to ? (lv.x - lv.from) / (lv.to - lv.from) * 100 : 100;
   return `<div class="dash">
-    <div class="dash-head"><div><div class="logo">Slothkin${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
+    <div class="dash-head"><div><div class="logo">Poquito${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
       ${u ? `<button class="btn sec" id="cloudSync" style="width:auto;padding:10px 16px;font-size:14px">Synchronizovat</button>` : `<button class="btn" id="cloudIn" style="width:auto;padding:10px 16px;font-size:14px">Přihlásit přes Google</button>`}</div>
     ${!u ? `<section class="card" style="padding:16px"><b>Tady uvidíš své statistiky a odznaky.</b><p class="note" style="margin:6px 0 0">Přihlas se stejným Google účtem, který jsi propojil v telefonu (Více → Cloud a web). Data z telefonu se sem načtou.</p></section>` : ''}
     <section class="card level"><div class="m">${mascot('happy', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>
@@ -343,8 +345,8 @@ const I = {
 };
 
 const LEAF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3C10 3 4 8 4 15c0 2 .6 3.8 1.6 5.2C7 13 12 9 17 7c-4 3-8 7-10 14 1 .5 2.2.8 3.4.8C17 21.8 21 15 20 3z" fill="#EFA23A"/></svg>';
-const brand = () => `<div class="brand"><div><div class="logo">Slothkin${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
-const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Slothkin${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
+const brand = () => `<div class="brand"><div><div class="logo">Poquito${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
+const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Poquito${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
 function scene(h = 260) {
   const night = document.documentElement.dataset.theme === 'dark';
   const pines = (y, s, n, fill) => { let o = ''; for (let k = 0; k < n; k++) { const x = (k * 431 / n + (k % 3) * 9) % 430 - 10, sc = s * (0.8 + (k * 37 % 10) / 25); o += `<path d="M${x} ${y}l${10 * sc} -${30 * sc} ${10 * sc} ${30 * sc}z M${x + 3 * sc} ${y - 14 * sc}l${7 * sc} -${22 * sc} ${7 * sc} ${22 * sc}z" fill="${fill}"/>`; } return o; };
@@ -361,14 +363,22 @@ function scene(h = 260) {
   </svg>`;
 }
 
+// veřejná adresa webu (odkazy z kruhu a doporučení; v Android appce není location použitelná) – po přesunu na novou doménu změnit zde
+const PUBLIC_URL = 'https://honzapoko.github.io/cesta-lesem/';
+
 // ---------- ui state ----------
 let tab = 'home', cur = TODAY, calMonth = TODAY.slice(0, 7);
 // odkaz s kódem kruhu (…/cesta-lesem/?kruh=ABC123) otevře Kruh s předvyplněným kódem
 let pendingCode = '';
-try { const q = new URLSearchParams(location.search).get('kruh'); if (q) { localStorage.setItem('klicek-kruh', q.toUpperCase().slice(0, 6)); history.replaceState(null, '', location.pathname); } pendingCode = localStorage.getItem('klicek-kruh') || ''; if (pendingCode) tab = 'circle'; } catch (e) {}
+try { const q = new URLSearchParams(location.search).get('kruh'); if (q) { localStorage.setItem('klicek-kruh', q.toUpperCase().slice(0, 6)); history.replaceState(null, '', location.pathname); } const rf = new URLSearchParams(location.search).get('ref'); if (rf && !S.refClaimed && !S.refBy) { S.refBy = rf.toUpperCase().slice(0, 8); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} history.replaceState(null, '', location.pathname); } pendingCode = localStorage.getItem('klicek-kruh') || ''; if (pendingCode) tab = 'circle'; } catch (e) {}
 const openSet = new Set(['les']);
 const app = document.getElementById('app');
 
+// stará adresa: nabídnout přesun na PUBLIC_URL i s daty
+function moveBanner() {
+  if (location.hostname !== 'honzapoko.github.io' || PUBLIC_URL.includes('github.io')) return '';
+  return `<section class="card" style="padding:14px 16px;border:2px solid var(--orange)"><b>Poquito se přestěhovalo</b><p class="note" style="margin:4px 0 10px">Nová adresa je ${esc(PUBLIC_URL.replace('https://', '').replace(/\/$/, ''))}. Ťukni a vezmi si s sebou všechny záznamy. Pak si appku přidej na plochu znovu z nové adresy.</p><button class="btn" id="moveGo">Přestěhovat i s daty</button></section>`;
+}
 function applyTheme() {
   const dark = has('night') && S.theme === 'dark';
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
@@ -383,7 +393,7 @@ function render() {
   app.innerHTML = views[tab]();
   renderTabs();
   renderSide();
-  if (tab === 'more') bindTimer();
+  if (tab === 'more') { bindTimer(); const so = S.social || {}; if (window.cloud && cloud.user() && Date.now() - (so.refAt || 0) > 6e5) { S.social = so; so.refAt = Date.now(); refSync(); } }
   if (tab === 'circle') circleRefresh();
 }
 
@@ -448,6 +458,33 @@ function vocative(n) {
 }
 function userName() { const n = S.me && S.me.nick; if (n) return n; const u = window.cloud && cloud.user(); const m = u && u.user_metadata; return m ? (m.given_name || (m.full_name || '').split(' ')[0] || '') : ''; }
 // parťák (S.pal): výběr z 10 zvířátek; dokud si ho uživatel nevybral, ukazuje se na Domů karta s nabídkou
+// ---------- doporučení (supabase/referrals_v1.sql) ----------
+// Doporučující dostane REF_COINS mincí za každého kamaráda, který má aspoň 3 aktivní dny; nový uživatel REF_WELCOME na uvítanou.
+const REF_COINS = 50, REF_WELCOME = 20;
+function shareText(txt, copied, url) {
+  txt = (window.tr || (x => x))(txt) + (url ? ' ' + url : ''); // URL zvlášť, ať jde věta přeložit
+  if (navigator.share) { navigator.share({ text: txt }).catch(() => {}); return; }
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast(copied || 'Zkopírováno.')).catch(() => toast(txt));
+  else toast(txt);
+}
+async function refSync() {
+  if (!window.circle || !circle.ready() || !circle.refStats) return;
+  S.social = S.social || {};
+  if (S.refBy && !S.refClaimed) {
+    try { const r = await circle.claimRef(S.refBy); S.refClaimed = 1; if (r) toast(`Vítej v Poquitu! Kamarád tě pozval, máš 🪙 ${REF_WELCOME} na začátek.`); }
+    catch (e) { const m = String(e && e.message || e); if (/self|too old|no such|already/.test(m)) S.refClaimed = 1; } // jinak zkusit příště (např. chybí SQL)
+  }
+  try { const st = await circle.refStats(); if (st) S.social.ref = st; if (!S.social.refCode) S.social.refCode = await circle.refCode(); } catch (e) {}
+  save(); if (tab === 'more' || tab === 'path') render();
+}
+function refCard() {
+  const signed = window.cloud && cloud.user(); const r = (S.social && S.social.ref) || {}; const code = S.social && S.social.refCode;
+  const got = REF_COINS * (r.active || 0);
+  return `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Doporuč Poquito</h3>
+    <p class="note" style="margin:2px 0 10px">Za každého kamaráda, který s Poquitem vydrží aspoň 3 aktivní dny, dostaneš 🪙 ${REF_COINS} mincí do zahrady. Kamarád dostane 🪙 ${REF_WELCOME} na začátek.</p>
+    ${signed ? `${code ? `<button class="btn" data-refshare="${esc(code)}">Sdílet odkaz</button><p class="note" style="margin:8px 0 0;text-align:center">Pozváno: ${r.invited || 0} · aktivních: ${r.active || 0} · získáno 🪙 ${got}</p>` : '<p class="note" style="margin:0">Připravuji tvůj odkaz…</p>'}` : '<button class="btn sec" id="cloudIn">Propojit s Google účtem</button><p class="note" style="margin:8px 0 0">Doporučení potřebuje účet, aby se odměna připsala.</p>'}
+  </section>`;
+}
 function setLang(l) { S.lang = l; save(); window.i18n.set(l); }
 function palInfo() { return PALS.find(p => p.id === S.pal) || PALS[0]; }
 function palGrid() { const cur_ = palInfo().id; return `<div class="palgrid">${PALS.map(p => `<button data-pal="${p.id}" class="${cur_ === p.id ? 'on' : ''}" aria-pressed="${cur_ === p.id}"><img src="img/pals/${p.id}/${cur_ === p.id ? 'joy' : 'idle'}.webp" alt=""><span>${esc(p.name)}</span></button>`).join('')}</div>`; }
@@ -486,7 +523,7 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${gestCard()}
+    ${moveBanner()}${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span><span class="hview" role="group" aria-label="Zobrazení úkolů"><button data-hview="list" class="${S.homeView !== 'grid' ? 'on' : ''}" aria-label="Seznam">${I.vlist}</button><button data-hview="grid" class="${S.homeView === 'grid' ? 'on' : ''}" aria-label="Přehled">${I.vgrid}</button></span></h2>${S.homeView === 'grid' ? `<div class="hcards">${tasks.map(habitCard).join('')}</div>` : tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po ${nu.n}. aktivním dni. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
@@ -580,6 +617,7 @@ function coinsEarned() {
     if (n && S.fullDays && S.fullDays[day]) c += 3;
   }
   c += Math.floor(bestDayRun() / 7) * 10;
+  if (S.social && S.social.ref) c += REF_COINS * (S.social.ref.active || 0) + REF_WELCOME * (S.social.ref.welcome || 0); // doporučení
   if (S.social && S.social.coins) c += (S.social.coins.sent || 0) + (S.social.coins.received || 0);
   c += (S.goals || []).filter(g => g.done).reduce((a, g) => a + (g.coins || 0), 0);
   return c;
@@ -882,7 +920,7 @@ function myStatus() {
   const me = S.me || {};
   const items = ts.map(t => ({ t: t.t, ic: t.img ? null : (t.ms ? null : t.ic), img: t.img ? `img/acts/${t.img}.webp` : (t.ms ? `img/challenges/${t.id}.webp` : null), done: isDoneFor(t) ? 1 : 0 }));
   cur = TODAY; items.forEach((it, k) => { it.done = isDoneFor(ts[k]) ? 1 : 0; }); cur = saved;
-  return { nick: (me.nick || '').trim() || 'Slothkin', avatar: palInfo().id, day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: ts.length ? homeMood(new Date().getHours(), done_, ts.length, true) : 'face', items }; // nálada jen ze sdílených aktivit (soukromí)
+  return { nick: (me.nick || '').trim() || 'Poquito', avatar: palInfo().id, day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: ts.length ? homeMood(new Date().getHours(), done_, ts.length, true) : 'face', items }; // nálada jen ze sdílených aktivit (soukromí)
 }
 let statusT = null, lastStatusJson = '';
 function scheduleStatus() {
@@ -914,7 +952,7 @@ function viewCircle() {
       <p class="note" style="margin:0 0 10px">Kruh potřebuje účet, aby se data potkala.</p><button class="btn" id="cloudIn">Propojit s Google účtem</button></section>`;
     return h + '</div></div>';
   }
-  const me = S.me || {}; const nick = (me.nick || '').trim() || (signed.user_metadata && (signed.user_metadata.given_name || (signed.user_metadata.full_name || '').split(' ')[0])) || 'Slothkin';
+  const me = S.me || {}; const nick = (me.nick || '').trim() || (signed.user_metadata && (signed.user_metadata.given_name || (signed.user_metadata.full_name || '').split(' ')[0])) || 'Poquito';
   if (!S.me || !S.me.nick) { S.me = { nick, avatar: me.avatar || 'leaf' }; }
   const data = S.social && S.social.data;
   if (circleErr) h += `<p class="note" style="color:var(--red,#c0392b)">${esc(circleErr)}</p>`;
@@ -938,7 +976,7 @@ function viewCircle() {
       const got = todayN.filter(n => n.to_user === m.user_id).length;
       const prog = fresh && st.total ? `dnes ${st.done} z ${st.total} sdílených` : (fresh ? 'nic nesdílí' : 'dnes ještě nic');
       const items = Array.isArray(st.items) ? st.items : []; const openM = S.openMember === m.user_id && fresh && items.length;
-      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar, fresh ? st.mood : 'face')}<div class="cinfo"><b>${esc(st.nick || 'Slothkin')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
+      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar, fresh ? st.mood : 'face')}<div class="cinfo"><b>${esc(st.nick || 'Poquito')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
         ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>
         ${openM ? `<div class="mitems">${items.map(it => `<span class="${it.done ? 'on' : ''}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<i>${esc(it.ic || '•')}</i>`}${esc(it.t)}${it.done ? ' ✓' : ''}</span>`).join('')}</div>` : ''}`;
     }).join('');
@@ -947,9 +985,9 @@ function viewCircle() {
       <p class="note" style="margin:2px 0 10px">${mem.length} ${plural(mem.length, 'člen', 'členové', 'členů')} · kód pošli tomu, koho chceš přibrat (max 8).</p>
       ${rows}
       ${mine.length ? `<div class="gotbox"><b>Dnes ti drží palce</b>${mine.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
-      ${(() => { if (!data.posts) return ''; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Slothkin')}</option>`).join('');
+      ${(() => { if (!data.posts) return ''; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Poquito')}</option>`).join('');
         return `<div class="posts"><b class="plab">Vzkazy</b>${ps.length ? ps.map(p => { const st = data.status[p.user_id] || {}; const to = p.to_user ? (data.status[p.to_user] || {}).nick : ''; const own = p.user_id === myId || c.owner === myId; const d = new Date(p.created_at); const when = d.toISOString().slice(0, 10) === TODAY ? d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : `${d.getDate()}. ${d.getMonth() + 1}.`;
-          return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Slothkin')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
+          return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Poquito')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
           <div class="quick">${circle.QUICK.map(q => `<button data-quick="${esc(q)}" data-cid="${c.id}">${esc(q)}</button>`).join('')}</div>
           <div class="pform" data-cid="${c.id}"><select class="inp ptо" data-pto style="max-width:38%"><option value="">Všem</option>${memberOpts}</select><input class="inp ptext" maxlength="160" placeholder="Napiš vzkaz…" style="flex:1"><button class="btn psend" data-post="${c.id}" style="width:auto;padding:10px 14px">Poslat</button></div></div>`; })()}
       <div style="display:flex;gap:8px;margin-top:10px"><button class="more" data-share-code="${esc(c.code)}">Sdílet kód</button><button class="more" data-leave="${c.id}" style="margin-left:auto;color:var(--muted)">Opustit kruh</button></div></section>`;
@@ -995,6 +1033,7 @@ function viewMore() {
   if (window.native && native.isNative) h += remCard();
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Jazyk</h3><div class="langrow" data-noi18n>${i18n.LANGS.map(([id, l]) => `<button data-lang="${id}" class="${i18n.lang === id ? 'on' : ''}" lang="${id}">${l}</button>`).join('')}</div></section>`;
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Tvůj parťák</h3><p class="note" style="margin:2px 0 4px">Raduje se, když plníš, a posmutní, když se nedaří.</p>${palGrid()}</section>`;
+  h += refCard();
   h += goalsCard();
   h += cloudCard();
   h += `<section class="card">
@@ -1005,7 +1044,7 @@ function viewMore() {
       <label class="btn sec" style="text-align:center;cursor:pointer">Obnovit ze zálohy<input type="file" id="imp" accept="application/json,.json" hidden></label>
       <div id="impConfirm"></div>
     </div></section>
-    <p class="note" style="text-align:center">Slothkin · pomalu, ale jistě · verze ${APP_VERSION}</p>
+    <p class="note" style="text-align:center">Poquito · pomalu, ale jistě · verze ${APP_VERSION}</p>
   </div></div>`;
   return h;
 }
@@ -1160,7 +1199,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-pal],[data-hview],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1177,6 +1216,8 @@ document.addEventListener('click', e => {
   if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (t.id === 'moveGo') { save(); const data = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); location.href = PUBLIC_URL + '#move=' + encodeURIComponent(data); return; }
+  if (ds.refshare) { shareText(`Zkus Poquito – appku na malé dobré návyky s roztomilým parťákem. Přes můj odkaz máš 🪙 ${REF_WELCOME} mincí na začátek:`, 'Odkaz zkopírován.', `${PUBLIC_URL}?ref=${ds.refshare}`); return; }
   if (ds.hview) { S.homeView = ds.hview; save(); render(); return; }
   if (ds.pal) { S.pal = ds.pal; save(); render(); return; }
   if (ds.lang) { setLang(ds.lang); return; }
@@ -1191,7 +1232,7 @@ document.addEventListener('click', e => {
   if (ds.prog) { S.programs = S.programs || []; S.programs = S.programs.includes(ds.prog) ? S.programs.filter(x => x !== ds.prog) : [...S.programs, ds.prog]; save(); render(); return; }
   if (ds.avatar) { S.me = S.me || {}; S.me.avatar = ds.avatar; save(); render(); return; }
   if (ds.share) { S.share = S.share || []; S.share = S.share.includes(ds.share) ? S.share.filter(x => x !== ds.share) : [...S.share, ds.share]; save(); render(); return; }
-  if (ds.shareCode) { const txt = `Přidej se do mého kruhu v Klíčkovi: kód ${ds.shareCode} · https://honzapoko.github.io/cesta-lesem/?kruh=${ds.shareCode}`; if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => toast('Kód zkopírován.')).catch(() => {}); } return; }
+  if (ds.shareCode) { shareText(`Přidej se do mého kruhu v Poquitu: kód ${ds.shareCode}`, 'Kód zkopírován.', `${PUBLIC_URL}?kruh=${ds.shareCode}`); return; }
   if (ds.nudge) { if (circleBusy) return; const [cid, to] = ds.nudge.split('|'); circleBusy = true; t.disabled = true; circle.nudge(cid, to, 'palec').then(() => { toast('Palec poslán 💪'); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); render(); }).finally(() => { circleBusy = false; }); return; }
   if (ds.leave) { if (!confirm('Opravdu opustit kruh?')) return; circle.leave(ds.leave).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
   if (t.id === 'ccreate') { const n = (document.getElementById('cname').value || '').trim(); if (!n) { toast('Napiš název kruhu.'); return; } t.disabled = true; circle.create(n).then(r => { toast(`Kruh založen. Kód: ${r.code}`); return circleRefresh(true); }).catch(e => { toast(circle.msg(e)); t.disabled = false; }); return; }
@@ -1287,8 +1328,9 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { wid
 
 (async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); applyWidgetPending(); } })();
 render();
+if (window.__moved) setTimeout(() => toast('Hotovo, všechno se přestěhovalo. Přidej si Poquito na plochu z téhle adresy.'), 600);
 app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ptext')) { e.preventDefault(); const b = e.target.closest('.pform').querySelector('.psend'); if (b) b.click(); } });
 app.addEventListener('change', e => { if (e.target && e.target.id === 'menick') { S.me = S.me || {}; S.me.nick = e.target.value.trim().slice(0, 24); save(); } });
-if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) { syncAll(); circleRefresh(true); } lastUid = id; }); cloud.init().catch(() => {}); }
+if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) { syncAll(); circleRefresh(true); setTimeout(refSync, 1500); } lastUid = id; }); cloud.init().catch(() => {}); }
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

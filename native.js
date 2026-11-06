@@ -1,4 +1,4 @@
-// Slothkin (dříve Klíček) – nativní vrstva (Capacitor). Na webu se nic z toho nespustí, appka funguje jako dřív.
+// Poquito (dříve Klíček) – nativní vrstva (Capacitor). Na webu se nic z toho nespustí, appka funguje jako dřív.
 (() => {
   'use strict';
   const Cap = window.Capacitor;

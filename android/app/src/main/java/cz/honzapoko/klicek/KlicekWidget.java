@@ -19,7 +19,7 @@ import org.json.JSONObject;
 
 /**
  * Základ widgetu. Velikosti = podtřídy: 0 malý 2x1, 1 střední 4x2, 2 velký 4x4, 3 úkoly 3x4.
- * Ťuknutí na úkol (střední, velký, úkoly) ho odškrtne přímo na ploše: widget si změnu hned zobrazí
+ * Ťuknutí na kartu úkolu (střední, velký, úkoly – všechny mají stejný seznam karet) ho odškrtne přímo na ploše: widget si změnu hned zobrazí
  * a uloží do fronty "pending"; appka si frontu vyzvedne při otevření (WidgetBridge.takePending).
  */
 public class KlicekWidget extends AppWidgetProvider {
@@ -30,7 +30,7 @@ public class KlicekWidget extends AppWidgetProvider {
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         String json = prefs(ctx).getString("state", "{}");
         for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, size(), id));
-        if (size() == 3) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
+        if (size() >= 1) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
     }
 
     @Override
@@ -102,7 +102,7 @@ public class KlicekWidget extends AppWidgetProvider {
         for (int s = 0; s < cls.length; s++) {
             int[] ids = mgr.getAppWidgetIds(new ComponentName(ctx, cls[s]));
             for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, s, id));
-            if (s == 3 && ids.length > 0) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
+            if (s >= 1 && ids.length > 0) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
         }
     }
 
@@ -140,25 +140,6 @@ public class KlicekWidget extends AppWidgetProvider {
         rv.setTextViewText(R.id.w_progress, total > 0 ? done + " / " + total : "–");
         if (size >= 1) {
             rv.setTextViewText(R.id.w_lead, lead);
-            int[] rows = size == 2
-                ? new int[]{ R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4, R.id.w_t5, R.id.w_t6, R.id.w_t7, R.id.w_t8, R.id.w_t9, R.id.w_t10 }
-                : size == 3
-                ? new int[0] // Úkoly: karty v ListView (KlicekWidgetTasksService)
-                : new int[]{ R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4, R.id.w_t5 };
-            for (int i = 0; i < rows.length; i++) {
-                if (i < tasks.length()) {
-                    JSONObject t = tasks.optJSONObject(i);
-                    boolean d = t != null && t.optBoolean("done");
-                    rv.setViewVisibility(rows[i], View.VISIBLE);
-                    rv.setTextViewText(rows[i], (d ? "✅  " : "⬜  ") + (t != null ? t.optString("t", "") : ""));
-                    String tid = t != null ? t.optString("id", "") : "";
-                    if (!tid.isEmpty()) {
-                        Intent it = new Intent(ctx, KlicekWidget.class).setAction(ACTION_TOGGLE).putExtra("id", tid);
-                        PendingIntent pi = PendingIntent.getBroadcast(ctx, 1000 + size * 100 + i, it, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                        rv.setOnClickPendingIntent(rows[i], pi);
-                    }
-                } else rv.setViewVisibility(rows[i], View.GONE);
-            }
         }
         rv.setImageViewResource(R.id.w_sloth, palImage(ctx, pal, mood));
         if (size == 2) {
@@ -166,7 +147,7 @@ public class KlicekWidget extends AppWidgetProvider {
             rv.setTextViewText(R.id.w_quote, quote);
             rv.setViewVisibility(R.id.w_quote, quote.isEmpty() ? View.GONE : View.VISIBLE);
         }
-        if (size == 3) {
+        if (size >= 1) { // střední, velký i Úkoly: stejné karty v ListView (KlicekWidgetTasksService)
             Intent svc = new Intent(ctx, KlicekWidgetTasksService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
             svc.setData(Uri.parse(svc.toUri(Intent.URI_INTENT_SCHEME))); // každá instance widgetu vlastní adaptér
             rv.setRemoteAdapter(R.id.w_list, svc);
@@ -176,8 +157,10 @@ public class KlicekWidget extends AppWidgetProvider {
             Intent tog = new Intent(ctx, KlicekWidget.class).setAction(ACTION_TOGGLE);
             int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
             rv.setPendingIntentTemplate(R.id.w_list, PendingIntent.getBroadcast(ctx, 3000 + widgetId, tog, fl));
-            rv.setTextViewText(R.id.w_more, tapHint);
-            rv.setViewVisibility(R.id.w_more, tapHint.isEmpty() ? View.GONE : View.VISIBLE);
+            if (size == 3) {
+                rv.setTextViewText(R.id.w_more, tapHint);
+                rv.setViewVisibility(R.id.w_more, tapHint.isEmpty() ? View.GONE : View.VISIBLE);
+            }
         }
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         if (open != null) {

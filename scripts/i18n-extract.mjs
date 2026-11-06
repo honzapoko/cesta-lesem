@@ -63,7 +63,7 @@ let html = fs.readFileSync(`${root}/index.html`, 'utf8').replace(/<style[\s\S]*?
 segments(html, 'index.html');
 // ručně: texty, které v DOM vzniknou rozdělením (např. „Ahoj,<br>Jméno!“)
 for (const k of ['Ahoj', 'DNES', 'DEN']) add(k, 'force');
-const out = [...keys.keys()].filter(k => !/^(places\/|wd |cesta-lesem-zaloha|Slothkin\{|Meta: |act_|ch_)/.test(k));
+const out = [...keys.keys()].filter(k => !/^(places\/|wd |cesta-lesem-zaloha|Poquito\{|Meta: |act_|ch_)/.test(k));
 fs.writeFileSync(`${root}/i18n/_keys.json`, JSON.stringify(out, null, 1));
 console.log(out.length, 'klíčů;', out.filter(k => /\{\d\}/.test(k)).length, 'vzorů');
 for (const f of fs.readdirSync(`${root}/i18n`).filter(f => /^[a-z]{2}\.json$/.test(f))) { const d = JSON.parse(fs.readFileSync(`${root}/i18n/${f}`, 'utf8')); const miss = out.filter(k => !(k in d)); console.log(f, 'chybí', miss.length, miss.slice(0, 5).join(' | ')); }

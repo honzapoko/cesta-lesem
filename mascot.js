@@ -1,4 +1,4 @@
-// Slothkin – parťák (maskot). Uživatel si vybere jedno z 10 zvířátek (S.pal), každé má 20 póz v img/pals/<pal>/<pose>.webp.
+// Poquito – parťák (maskot). Uživatel si vybere jedno z 10 zvířátek (S.pal), každé má 20 póz v img/pals/<pal>/<pose>.webp.
 // mood = nálada z appky (homeMood, oslavy…), převede se na pózu.
 window.PALS = [
   { id: 'sloth', name: 'Lenochod', em: '🦥' },

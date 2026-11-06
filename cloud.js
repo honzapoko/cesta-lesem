@@ -1,4 +1,4 @@
-// Slothkin (dříve Klíček) – cloud: přihlášení přes Google a synchronizace záznamů do Supabase.
+// Poquito (dříve Klíček) – cloud: přihlášení přes Google a synchronizace záznamů do Supabase.
 // Appka funguje i bez přihlášení; tohle je jen volitelná vrstva nad localStorage.
 (() => {
   'use strict';

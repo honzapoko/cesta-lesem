@@ -1,4 +1,4 @@
-// Slothkin – překlady. Zdrojový jazyk je čeština: texty v kódu zůstávají česky a tahle vrstva je za běhu
+// Poquito – překlady. Zdrojový jazyk je čeština: texty v kódu zůstávají česky a tahle vrstva je za běhu
 // překládá podle slovníku i18n/<jazyk>.json (klíč = český text, vzory s {0} pro proměnné části).
 // Překládá se hotové DOM (MutationObserver), dialogy confirm() a texty pro oznámení/widget přes window.tr().
 // Nové texty: po změně textů spustit `node scripts/i18n-extract.mjs` a doplnit chybějící překlady (viz HANDOFF).
@@ -6,7 +6,7 @@
   'use strict';
   const LANGS = [['cs', 'Čeština'], ['en', 'English'], ['es', 'Español'], ['de', 'Deutsch'], ['fr', 'Français'], ['it', 'Italiano'], ['ru', 'Русский'], ['uk', 'Українська'], ['pl', 'Polski']];
   const IDS = LANGS.map(l => l[0]);
-  const DKEY = 'slothkin-i18n';
+  const DKEY = 'poquito-i18n';
   let lang = 'cs';
   try { const s = JSON.parse(localStorage.getItem('cesta-lesem-v2') || '{}'); if (IDS.includes(s.lang)) lang = s.lang; else if (s.v) lang = 'cs'; else { const nav = (navigator.languages || [navigator.language || 'cs']).map(x => String(x).slice(0, 2).toLowerCase()); lang = nav.find(x => IDS.includes(x)) || 'en'; } } catch (e) {}
   document.documentElement.lang = lang;
@@ -61,7 +61,7 @@
 
   if (lang !== 'cs') {
     try { const c = JSON.parse(localStorage.getItem(DKEY) || 'null'); if (c && c.lang === lang && c.d) { load(c.d); observe(); document.addEventListener('DOMContentLoaded', () => el(document.body)); } } catch (e) {}
-    fetch(`i18n/${lang}.json?v=25`).then(r => r.json()).then(d => { try { localStorage.setItem(DKEY, JSON.stringify({ lang, d })); } catch (e) {} mo.disconnect(); start(d); }).catch(() => {});
+    fetch(`i18n/${lang}.json?v=26`).then(r => r.json()).then(d => { try { localStorage.setItem(DKEY, JSON.stringify({ lang, d })); } catch (e) {} mo.disconnect(); start(d); }).catch(() => {});
     const oc = window.confirm.bind(window); window.confirm = m => oc(tr(m));
     const oa = window.alert.bind(window); window.alert = m => oa(tr(m));
   }

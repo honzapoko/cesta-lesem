@@ -1,4 +1,4 @@
-// Slothkin (dříve Klíček) – Kruhy: datová vrstva nad Supabase (viz KONCEPT-KRUHY.md a supabase/circles_v1.sql).
+// Poquito (dříve Klíček) – Kruhy: datová vrstva nad Supabase (viz KONCEPT-KRUHY.md a supabase/circles_v1.sql).
 // Všechno jde přes cloud.sb() a RPC; appka bez přihlášení funguje beze změny.
 (() => {
   'use strict';
@@ -43,6 +43,10 @@
       const row = Object.assign({ user_id: uid(), updated_at: new Date().toISOString() }, st);
       const { error } = await s.from('status').upsert(row, { onConflict: 'user_id' }); throwIf(error);
     },
+    // doporučení (supabase/referrals_v1.sql)
+    async refCode() { const s = sb(); if (!s || !uid()) return null; const { data, error } = await s.rpc('my_ref_code'); throwIf(error); return data; },
+    async claimRef(code) { const s = sb(); const { data, error } = await s.rpc('claim_referral', { p_code: String(code || '').toUpperCase() }); throwIf(error); return data; },
+    async refStats() { const s = sb(); if (!s || !uid()) return null; const { data, error } = await s.rpc('my_referrals'); throwIf(error); const r = Array.isArray(data) ? data[0] : data; return r ? { invited: r.invited || 0, active: r.active || 0, welcome: r.welcome || 0 } : null; },
     async coins() { const s = sb(); if (!s || !uid()) return null; const { data, error } = await s.rpc('nudge_coins'); if (error) return null; const r = Array.isArray(data) ? data[0] : data; return r ? { sent: r.sent || 0, received: r.received || 0 } : null; },
     // chyby RPC → česky
     msg(e) {
