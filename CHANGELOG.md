@@ -2,6 +2,10 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.25 – 2026-11-06 (Honza: vzhled podle HabitBox a „habit ticker“ widgetu)
+- **Přehled úkolů na Domů** (přepínač Seznam / Přehled, `S.homeView`): barevné karty s ikonou, „x z 7 tento týden“, mřížkou splněných dní za 22 týdnů (sloupec = týden) a velkým kulatým odškrtávátkem (`habitCard`). – *Honzova předloha HabitBox.*
+- **Widget Úkoly 3×4** předělán na posouvatelný seznam karet (`KlicekWidgetTasksService`, `widget_task_card.xml`): ikona aktivity (`res/drawable-nodpi/act_*`, `ch_*`), název, „x z 7 tento týden“ + ukazatel průběhu (na Androidu 12+ v barvě karty), kulaté odškrtávátko; ťuknutí na kartu = fajfka. – *Honzova předloha widgetu s kartami.*
+
 ## 1.24 – 2026-11-06 (Honza: víc widgetů, odškrtávání na ploše)
 - Nový widget **Úkoly 3×4** (`KlicekWidgetTasks`, `widget_tasks.xml`): parťák v náladě, splněno x / y, dny v řadě, až 8 dnešních úkolů. – *Honza chtěl widget 3×4, kde vidí úkoly a co je splněno.*
 - **Fajfka přímo na ploše** (střední, velký i Úkoly): ťuknutí na úkol ho ve widgetu hned přepne a zařadí do fronty `pending` (SharedPreferences); appka si frontu vyzvedne při otevření/návratu (`WidgetBridge.takePending` → `applyWidgetPending`) a zapíše do záznamů, pak teprve posílá nový stav widgetu (`widgetSynced`), aby fajfky nepřepsala. Po půlnoci widget sám ukáže denní úkoly jako nesplněné. – *aby nemusel kvůli fajfce otevírat appku.*

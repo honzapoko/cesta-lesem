@@ -7,6 +7,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
 import android.view.View;
 import android.widget.RemoteViews;
 import java.text.SimpleDateFormat;
@@ -27,7 +29,8 @@ public class KlicekWidget extends AppWidgetProvider {
     @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         String json = prefs(ctx).getString("state", "{}");
-        for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, size()));
+        for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, size(), id));
+        if (size() == 3) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
     }
 
     @Override
@@ -74,7 +77,7 @@ public class KlicekWidget extends AppWidgetProvider {
             boolean now = false; int done = 0; boolean found = false;
             for (int i = 0; i < tasks.length(); i++) {
                 JSONObject x = tasks.optJSONObject(i); if (x == null) continue;
-                if (id.equals(x.optString("id"))) { now = !x.optBoolean("done"); x.put("done", now); found = true; }
+                if (id.equals(x.optString("id"))) { now = !x.optBoolean("done"); x.put("done", now); found = true; x.put("wk", Math.max(0, x.optInt("wk", 0) + (now ? 1 : -1))); }
                 if (x.optBoolean("done")) done++;
             }
             if (!found) return;
@@ -98,7 +101,8 @@ public class KlicekWidget extends AppWidgetProvider {
         Class<?>[] cls = { KlicekWidgetSmall.class, KlicekWidget.class, KlicekWidgetLarge.class, KlicekWidgetTasks.class };
         for (int s = 0; s < cls.length; s++) {
             int[] ids = mgr.getAppWidgetIds(new ComponentName(ctx, cls[s]));
-            for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, s));
+            for (int id : ids) mgr.updateAppWidget(id, build(ctx, json, s, id));
+            if (s == 3 && ids.length > 0) mgr.notifyAppWidgetViewDataChanged(ids, R.id.w_list);
         }
     }
 
@@ -122,7 +126,7 @@ public class KlicekWidget extends AppWidgetProvider {
         return r != 0 ? r : R.drawable.widget_sloth;
     }
 
-    static RemoteViews build(Context ctx, String json, int size) {
+    static RemoteViews build(Context ctx, String json, int size, int widgetId) {
         int layout = size == 0 ? R.layout.widget_small : size == 2 ? R.layout.widget_large : size == 3 ? R.layout.widget_tasks : R.layout.widget_klicek;
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), layout);
         int streak = 0, done = 0, total = 0, coins = 0; String lead = "Pomalu, ale jistě.", quote = "", pal = "sloth", mood = "face", streakTxt = null, tapHint = "";
@@ -139,7 +143,7 @@ public class KlicekWidget extends AppWidgetProvider {
             int[] rows = size == 2
                 ? new int[]{ R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4, R.id.w_t5, R.id.w_t6, R.id.w_t7, R.id.w_t8, R.id.w_t9, R.id.w_t10 }
                 : size == 3
-                ? new int[]{ R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4, R.id.w_t5, R.id.w_t6, R.id.w_t7, R.id.w_t8 }
+                ? new int[0] // Úkoly: karty v ListView (KlicekWidgetTasksService)
                 : new int[]{ R.id.w_t1, R.id.w_t2, R.id.w_t3, R.id.w_t4, R.id.w_t5 };
             for (int i = 0; i < rows.length; i++) {
                 if (i < tasks.length()) {
@@ -163,9 +167,17 @@ public class KlicekWidget extends AppWidgetProvider {
             rv.setViewVisibility(R.id.w_quote, quote.isEmpty() ? View.GONE : View.VISIBLE);
         }
         if (size == 3) {
-            boolean more = tasks.length() > 8;
-            rv.setTextViewText(R.id.w_more, more ? "+" + (tasks.length() - 8) : tapHint);
-            rv.setViewVisibility(R.id.w_more, (more || !tapHint.isEmpty()) ? View.VISIBLE : View.GONE);
+            Intent svc = new Intent(ctx, KlicekWidgetTasksService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
+            svc.setData(Uri.parse(svc.toUri(Intent.URI_INTENT_SCHEME))); // každá instance widgetu vlastní adaptér
+            rv.setRemoteAdapter(R.id.w_list, svc);
+            rv.setEmptyView(R.id.w_list, R.id.w_empty);
+            rv.setTextViewText(R.id.w_empty, o.optString("emptyTxt", "＋"));
+            // šablona pro ťuknutí na kartu; konkrétní id doplní fill-in intent z karty (musí být MUTABLE)
+            Intent tog = new Intent(ctx, KlicekWidget.class).setAction(ACTION_TOGGLE);
+            int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+            rv.setPendingIntentTemplate(R.id.w_list, PendingIntent.getBroadcast(ctx, 3000 + widgetId, tog, fl));
+            rv.setTextViewText(R.id.w_more, tapHint);
+            rv.setViewVisibility(R.id.w_more, tapHint.isEmpty() ? View.GONE : View.VISIBLE);
         }
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         if (open != null) {

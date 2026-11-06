@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.24'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.25'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -218,7 +218,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -319,6 +319,8 @@ function renderSide() {
 
 // ---------- icons ----------
 const I = {
+  vlist: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>',
+  vgrid: '<svg viewBox="0 0 24 24"><g fill="currentColor"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></g></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   left: '<svg width="18" height="18" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   right: '<svg width="18" height="18" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
@@ -485,7 +487,7 @@ function viewHome() {
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
     ${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${gestCard()}
-    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
+    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span><span class="hview" role="group" aria-label="Zobrazení úkolů"><button data-hview="list" class="${S.homeView !== 'grid' ? 'on' : ''}" aria-label="Seznam">${I.vlist}</button><button data-hview="grid" class="${S.homeView === 'grid' ? 'on' : ''}" aria-label="Přehled">${I.vgrid}</button></span></h2>${S.homeView === 'grid' ? `<div class="hcards">${tasks.map(habitCard).join('')}</div>` : tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po ${nu.n}. aktivním dni. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
 }
@@ -527,6 +529,27 @@ function taskHtml(s) {
     <div class="tmain"><h3>${esc(s.t)}${tag}</h3><p>${esc(sub)}</p><div class="tlinks">${s.note !== 'none' ? `<button class="more" data-open="${s.id}" aria-expanded="${open}">${open ? 'Skrýt poznámku' : 'Poznámka'}</button>` : ''}${s.opt ? `<button class="more dim" data-unpick="${s.id}">Odebrat</button>` : s.prog ? `<button class="more dim" data-unprog="${s.id}">Vypnout výzvu</button>` : ''}</div></div>
     <button class="check ${on ? 'on' : ''}" data-toggle="${s.id}" aria-pressed="${on}" aria-label="Splněno: ${esc(s.t)}">${I.check}</button>
   </div>${open ? `<div class="tbody">${body}</div>` : ''}</div>`;
+}
+
+// přehled úkolů jako barevné karty s mřížkou splněných dní (styl „HabitBox“): sloupec = týden, řádek = den v týdnu
+const HC_COLORS = ['#E2683C', '#9B45B5', '#4E9F55', '#3F86D6', '#D9A12E', '#23998D', '#CC4769', '#6A5FD1'];
+const HC_WEEKS = 22;
+function habitCard(s, i) {
+  const on = isDoneFor(s), col = HC_COLORS[i % HC_COLORS.length];
+  const start = addDays(weekKey(TODAY), -7 * (HC_WEEKS - 1));
+  let cells = '', wk = 0;
+  for (let w = 0; w < HC_WEEKS; w++) for (let d = 0; d < 7; d++) {
+    const day = addDays(start, w * 7 + d);
+    if (day > TODAY) { cells += '<i class="fut"></i>'; continue; }
+    const hit = s.kind === 'week' ? doneDays(s.id).some(x => weekKey(x) === weekKey(day)) : done(s.id, day);
+    if (w === HC_WEEKS - 1 && done(s.id, day)) wk++;
+    cells += `<i class="${hit ? 'on' : ''}${day === cur ? ' cur' : ''}"></i>`;
+  }
+  const icon = s.img ? actIcon(s.img) : s.ms ? `<img src="img/challenges/${s.id}.webp" alt="" draggable="false">` : `<span>${s.ic || '⭐'}</span>`;
+  const goal = s.kind === 'week' ? 1 : 7;
+  return `<div class="hcard" style="--hc:${col}"><div class="hhead"><div class="hic" aria-hidden="true">${icon}</div><div class="hname"><b>${esc(s.t)}</b><small>${Math.min(wk, goal)} z ${goal} tento týden</small></div>
+    <button class="hchk ${on ? 'on' : ''}" data-toggle="${s.id}" aria-pressed="${on}" aria-label="Splněno: ${esc(s.t)}">${on ? I.check : ''}</button></div>
+    <div class="hgrid" aria-hidden="true">${cells}</div></div>`;
 }
 
 // ---------- path ----------
@@ -1137,7 +1160,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-pal],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-pal],[data-hview],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1154,6 +1177,7 @@ document.addEventListener('click', e => {
   if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (ds.hview) { S.homeView = ds.hview; save(); render(); return; }
   if (ds.pal) { S.pal = ds.pal; save(); render(); return; }
   if (ds.lang) { setLang(ds.lang); return; }
   if (t.id === 'nameOk') { const v = (document.getElementById('menick').value || '').trim().slice(0, 24); if (!v) return; S.me = S.me || {}; S.me.nick = v; save(); render(); return; }
@@ -1229,11 +1253,18 @@ function pushWidget() {
       const hour = new Date().getHours(); const mood = homeMood(hour, done, t.length, true);
       const T_ = window.tr || (x => x); // překlad pro widget (mimo DOM)
       const run = dayRun();
-      const state = { day: TODAY, pal: palInfo().id, mood, streak: run, streakTxt: run + ' ' + T_(plural(run, 'den v řadě', 'dny v řadě', 'dní v řadě')), tapHint: T_('Ťuknutím na úkol ho odškrtneš.'), done, total: t.length, coins: coins(), lead: T_(moodLead(mood, hour, done, t.length)), quote: has('quote') ? T_(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length]) : '', tasks: t.slice(0, 10).map(x => ({ id: x.id, w: x.kind === 'week' ? 1 : 0, t: T_(x.t), done: isDoneFor(x) })) };
+      const state = { day: TODAY, pal: palInfo().id, mood, streak: run, streakTxt: run + ' ' + T_(plural(run, 'den v řadě', 'dny v řadě', 'dní v řadě')), tapHint: T_('Ťuknutím na úkol ho odškrtneš.'), done, total: t.length, coins: coins(), lead: T_(moodLead(mood, hour, done, t.length)), quote: has('quote') ? T_(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length]) : '', countFmt: T_('{0} z {1} tento týden'), emptyTxt: T_('Vybrat aktivity'), tasks: t.slice(0, 20).map(x => widgetTask(x, T_)) };
       cur = saved;
       native.updateWidget(state);
     } catch (e) {}
   }, 300);
+}
+// úkol pro widget: ikona = jméno drawable (act_/ch_ + id bez diakritiky, viz scripts/widget-pals.py), týdenní průběh
+const resName = x => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/-/g, '_');
+function widgetTask(x, T_) {
+  const goal = x.kind === 'week' ? 1 : 7, wk0 = weekKey(TODAY);
+  let wk = 0; for (let d = 0; d < 7; d++) { const day = addDays(wk0, d); if (day <= TODAY && done(x.id, day)) wk++; }
+  return { id: x.id, w: x.kind === 'week' ? 1 : 0, t: T_(x.t), done: isDoneFor(x), icon: x.img ? 'act_' + resName(x.img) : x.ms ? 'ch_' + resName(x.id) : '', ic: x.ic || '', wk: Math.min(wk, goal), goal };
 }
 // fajfky z widgetu na ploše: zapsat do záznamů (jen posledních BACK dní a jen úkoly, které ten den existují)
 var widgetSynced = false; // var: save() může běžet dřív, než se tenhle řádek vykoná

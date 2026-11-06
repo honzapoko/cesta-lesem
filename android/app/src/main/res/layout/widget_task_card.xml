@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Jedna karta ve widgetu Úkoly: ikona | název + „x z 7“ + ukazatel | kulaté odškrtávátko. Ťuknutí kamkoli na kartu = fajfka. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_card" android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:gravity="center_vertical" android:background="@drawable/widget_card"
+    android:layout_marginBottom="6dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="8dp" android:paddingBottom="8dp">
+    <FrameLayout android:layout_width="36dp" android:layout_height="36dp">
+        <ImageView android:id="@+id/w_icon" android:layout_width="36dp" android:layout_height="36dp" android:scaleType="fitCenter" android:contentDescription=""/>
+        <TextView android:id="@+id/w_emoji" android:layout_width="36dp" android:layout_height="36dp" android:gravity="center" android:textSize="22sp" android:text="⭐" android:visibility="gone"/>
+    </FrameLayout>
+    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginStart="10dp" android:layout_marginEnd="8dp">
+        <TextView android:id="@+id/w_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#1E2A4A" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
+        <TextView android:id="@+id/w_count" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#7A6A55" android:textSize="12sp" android:maxLines="1"/>
+        <ProgressBar android:id="@+id/w_prog" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="4dp" android:max="7" android:progress="0" android:progressDrawable="@drawable/widget_progress"/>
+    </LinearLayout>
+    <ImageView android:id="@+id/w_check" android:layout_width="34dp" android:layout_height="34dp" android:src="@drawable/widget_check_off" android:contentDescription="✓"/>
+</LinearLayout>

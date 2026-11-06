@@ -7,5 +7,5 @@
     <string name="widget_desc_small">Malý: dnes splněno a dny v řadě</string>
     <string name="widget_desc">Střední: 5 úkolů (odškrtneš ťuknutím), dny v řadě, parťák</string>
     <string name="widget_desc_large">Velký: všechny úkoly (odškrtneš ťuknutím), mince, věta dne</string>
-    <string name="widget_desc_tasks">Úkoly: dnešní seznam s odškrtáváním ťuknutím</string>
+    <string name="widget_desc_tasks">Úkoly: karty s týdenním průběhem, fajfka ťuknutím</string>
 </resources>
