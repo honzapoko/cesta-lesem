@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.26'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.27'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -364,7 +364,7 @@ function scene(h = 260) {
 }
 
 // veřejná adresa webu (odkazy z kruhu a doporučení; v Android appce není location použitelná) – po přesunu na novou doménu změnit zde
-const PUBLIC_URL = 'https://honzapoko.github.io/cesta-lesem/';
+const PUBLIC_URL = 'https://poquito-roan.vercel.app/';
 
 // ---------- ui state ----------
 let tab = 'home', cur = TODAY, calMonth = TODAY.slice(0, 7);
@@ -1332,5 +1332,6 @@ if (window.__moved) setTimeout(() => toast('Hotovo, všechno se přestěhovalo. 
 app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ptext')) { e.preventDefault(); const b = e.target.closest('.pform').querySelector('.psend'); if (b) b.click(); } });
 app.addEventListener('change', e => { if (e.target && e.target.id === 'menick') { S.me = S.me || {}; S.me.nick = e.target.value.trim().slice(0, 24); save(); } });
 if (window.cloud) { let lastUid = null; cloud.onAuth(u => { render(); const id = u ? u.id : null; if (id && id !== lastUid) { syncAll(); circleRefresh(true); setTimeout(refSync, 1500); } lastUid = id; }); cloud.init().catch(() => {}); }
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+// service worker jen na webu (v Android appce by zbytečně cachoval; soubory má appka u sebe)
+if ('serviceWorker' in navigator && !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();

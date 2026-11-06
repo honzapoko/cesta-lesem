@@ -2,6 +2,9 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.27 – 2026-11-07 (Honza: nová adresa)
+- Web běží na **https://poquito-roan.vercel.app** (Vercel, nasazení po každém pushi do `main`; `vercel.json` → výstup `www/`). `PUBLIC_URL` přepnut → na staré github.io se ukáže pruh s přesunem dat. – *Honza nechce v adrese honzapoko/github/cesta-lesem.*
+
 ## 1.26 – 2026-11-06 (Honza: Poquito, doporučení, jednotné widgety, nová adresa)
 - Nový název **Poquito** (web, manifest, Android, widgety, překlady). – *Honza.*
 - **Doporučení** (Více → Doporuč Poquito, `refCard`, `supabase/referrals_v1.sql`): odkaz `?ref=KOD`; nový uživatel po přihlášení dostane 🪙 20, doporučující 🪙 50 za každého pozvaného s ≥ 3 aktivními dny. Ochrana: ne sám sebe, každý jen jednou, jen účty mladší 14 dní. Mince se přičítají v `coinsEarned` ze `S.social.ref`. – *Honza: odměna za doporučení.*

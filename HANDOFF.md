@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.26)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.27)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -33,7 +33,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
 - **Nové (6. 11. večer, 1.26)**: název Poquito. Čeká na Honzu:
-  1. **Vercel** – založit projekt z repa (`vercel.com/new` → import `honzapoko/cesta-lesem`, název `poquito`, Framework „Other“, bez build příkazu). MCP `create_git_project` vrátil 403. Pak: `PUBLIC_URL` v `app.js` přepsat na novou adresu → na staré github.io se objeví pruh „Poquito se přestěhovalo“ (přenos dat přes `#move=`).
+  1. ✔ **Vercel**: https://poquito-roan.vercel.app (projekt `poquito`, team `jan-pokornys-projects`; `vercel.json` → `outputDirectory: www`, build `npm run build`; service worker jen na webu). `PUBLIC_URL` přepnut; na github.io pruh s přesunem dat (`#move=`). GitHub Pages zatím nechat běžet kvůli přesunu.
   2. **Supabase** – Authentication → URL Configuration → Redirect URLs přidat `https://<nová adresa>/**` (jinak Google přihlášení na nové adrese selže); Site URL přepnout na novou adresu.
   3. **SQL** `supabase/referrals_v1.sql` (doporučení) spustit v SQL Editoru, ověřit `list_tables` (`referral_codes`, `referrals`).
   4. **Package id** pro Google Play: dnes `cz.honzapoko.klicek` (je vidět v Play URL a po nahrání nejde změnit). Navrženo `app.poquito` – mění se `applicationId` v `android/app/build.gradle`, `appId` v `capacitor.config.json`, schéma deep linku v `AndroidManifest.xml` + `cloud.js` (`…://auth`) a Redirect URL v Supabase; nainstalované appky = přeinstalovat (data přes cloud/zálohu).

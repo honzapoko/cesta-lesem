@@ -61,7 +61,7 @@
 
   if (lang !== 'cs') {
     try { const c = JSON.parse(localStorage.getItem(DKEY) || 'null'); if (c && c.lang === lang && c.d) { load(c.d); observe(); document.addEventListener('DOMContentLoaded', () => el(document.body)); } } catch (e) {}
-    fetch(`i18n/${lang}.json?v=26`).then(r => r.json()).then(d => { try { localStorage.setItem(DKEY, JSON.stringify({ lang, d })); } catch (e) {} mo.disconnect(); start(d); }).catch(() => {});
+    fetch(`i18n/${lang}.json?v=27`).then(r => r.json()).then(d => { try { localStorage.setItem(DKEY, JSON.stringify({ lang, d })); } catch (e) {} mo.disconnect(); start(d); }).catch(() => {});
     const oc = window.confirm.bind(window); window.confirm = m => oc(tr(m));
     const oa = window.alert.bind(window); window.alert = m => oa(tr(m));
   }
