@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Slothkin, dříve Klíček (6. 11. 2026, verze 1.22)
+# HANDOFF.md – stav projektu Slothkin, dříve Klíček (6. 11. 2026, verze 1.23)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -32,7 +32,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
 - **Cloud sync**: `days` (per den) + `profiles` (klíče `PROFILE_KEYS`), merge novější vyhrává (`pullMerge`).
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
-- **Nové (6. 11.)**: a) Honza projde překlady v appce (Více → Jazyk) – texty, které zůstaly česky, doplnit: `node scripts/i18n-extract.mjs` ukáže chybějící klíče, přeložit, uložit do `i18n/*.json`, zvednout `?v=` u fetch v `i18n.js`. b) Zahrada/lokality s vybraným parťákem (dnes lenochod) – potřeba pózy do scén. c) Kruh: avatar člena z parťáka místo 8 lenochodích čepic? d) Android widget a kanály: Java texty jsou česky (`KlicekWidget*.java`), widget obrázek `widget_sloth`. e) Obsah je místy česko-specifický (výzva „Pro partnerku“, vocativ) – pro mezinárodní verzi projít. f) Ikona appky a Play listing pod novým názvem.
+- **Nové (6. 11.)**: a) Honza projde překlady v appce (Více → Jazyk) – texty, které zůstaly česky, doplnit: `node scripts/i18n-extract.mjs` ukáže chybějící klíče, přeložit, uložit do `i18n/*.json`, zvednout `?v=` u fetch v `i18n.js`. b) Zahrada/lokality s vybraným parťákem (dnes lenochod) – potřeba pózy do scén. c) ✔ 1.23: avatar v Kruhu = parťák v náladě (`avatarImg(avatar, mood)`, `status.avatar` = id parťáka; staré id čepic se dál kreslí z `img/avatars`). d) Android widget a kanály: Java texty jsou česky (`KlicekWidget*.java`), widget obrázek `widget_sloth`. e) Obsah je místy česko-specifický (výzva „Pro partnerku“, vocativ) – pro mezinárodní verzi projít. f) Ikona appky a Play listing pod novým názvem.
 0. **Tom (syn) testuje a posílá zpětnou vazbu** – vše z 4.–5. 11. vyřešeno (CHANGELOG 1.16–1.21). Nevyjasněno: Tom tvrdí, že na Androidu se zapnutí/vypnutí aktivity projeví až po restartu – na webu nereprodukováno; při další zprávě chtít přesný postup.
 1. **Ověřit SQL v3** – Honza má spustit `supabase/circles_v3.sql` (vzkazy + `status.items`); k 6. 11. 00:30 tabulka `posts` v DB NEBYLA. Ověřit `list_tables`. Kruh „Rodina“: kód **PUTF45**, členové Jan (Honza) a Tom.
 2. **Děti do kruhu** – přihlášení přes Google na webu (jsou v test users), zadat kód. Případně jim nahrát Android appku (stejný postup jako Honzovi, jiný telefon = `adb devices`).

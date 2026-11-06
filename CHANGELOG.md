@@ -2,6 +2,9 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.23 – 2026-11-06 (Honza: parťák jako avatar v Kruhu)
+- Avatar v Kruhu = vybraný parťák v **dnešní náladě** člena (raduje se / smutní podle sdílených aktivit); výběr parťáka i přímo v Kruhu místo 8 lenochodů s čepicí. Nálada do Kruhu se počítá jen ze sdílených aktivit (soukromí); kdo nic nesdílí, má neutrální pózu. Členové se starší verzí dál ukazují lenochoda s čepicí. – *Honza chtěl parťáka i v Kruhu.*
+
 ## 1.22 – 2026-11-06 (Honza: nový název, jazyky, parťáci)
 - Nový název **Slothkin** (web, manifest, Android `app_name`, widgety). `appId` zůstává `cz.honzapoko.klicek` – *změna by rozbila přihlášení Googlem a instalaci; na Play se zobrazuje jen název.*
 - **Parťák**: výběr z 10 zvířátek (lenochod, liška, sova, zajíc, medvídek, vydra, panda červená, kočka, pejsek, mýval), 20 póz každé v `img/pals/<id>/<póza>.webp`; volba `S.pal` (karta na Domů, dokud nevybráno; Více → Tvůj parťák), synchronizuje se do cloudu. – *Honza chce, aby si uživatel vybral avatara.*

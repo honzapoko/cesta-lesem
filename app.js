@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.22'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.23'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -455,7 +455,7 @@ function nameCard() { if (userName()) return ''; return `<section class="card" s
 function circleTeaser() {
   const inCircle = S.social && S.social.data && S.social.data.circles && S.social.data.circles.length;
   if (inCircle || S.teaserOff) return '';
-  return `<section class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><img class="av" src="img/avatars/leaf.webp" alt="" style="width:44px;height:44px"><div style="flex:1"><b>Kruh: držte si palce navzájem</b><span class="note" style="display:block">Rodina nebo kamarádi vidí jen to, co sdílíš. Žádný žebříček.</span></div><button class="btn sec" data-tab="circle" style="width:auto;padding:8px 12px;font-size:14px">Otevřít</button></section>`;
+  return `<section class="card" style="padding:12px 16px;display:flex;gap:12px;align-items:center"><img class="av pal" src="img/pals/${palInfo().id}/wave.webp" alt="" style="width:44px;height:44px"><div style="flex:1"><b>Kruh: držte si palce navzájem</b><span class="note" style="display:block">Rodina nebo kamarádi vidí jen to, co sdílíš. Žádný žebříček.</span></div><button class="btn sec" data-tab="circle" style="width:auto;padding:8px 12px;font-size:14px">Otevřít</button></section>`;
 }
 function emptyCard() { if (visibleTasks().length || activeTasks().length) return ''; return `<section class="card" style="padding:14px 16px"><b>Začni jednou věcí</b><p class="note" style="margin:4px 0 10px">Vyber si aktivitu nebo výzvu, kterou chceš sledovat. Stačí jedna; přidávat můžeš kdykoli.</p><button class="btn" data-tab="pick">Vybrat aktivity</button></section>`; }
 function viewHome() {
@@ -859,7 +859,7 @@ function myStatus() {
   const me = S.me || {};
   const items = ts.map(t => ({ t: t.t, ic: t.img ? null : (t.ms ? null : t.ic), img: t.img ? `img/acts/${t.img}.webp` : (t.ms ? `img/challenges/${t.id}.webp` : null), done: isDoneFor(t) ? 1 : 0 }));
   cur = TODAY; items.forEach((it, k) => { it.done = isDoneFor(ts[k]) ? 1 : 0; }); cur = saved;
-  return { nick: (me.nick || '').trim() || 'Slothkin', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true), items };
+  return { nick: (me.nick || '').trim() || 'Slothkin', avatar: palInfo().id, day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: ts.length ? homeMood(new Date().getHours(), done_, ts.length, true) : 'face', items }; // nálada jen ze sdílených aktivit (soukromí)
 }
 let statusT = null, lastStatusJson = '';
 function scheduleStatus() {
@@ -880,7 +880,9 @@ async function circleRefresh(force) {
   } catch (e) { circleErr = circle.msg(e); }
   if (tab === 'circle') render();
 }
-const avatarImg = a => `<img class="av" src="img/avatars/${esc(circle.AVATARS.includes(a) ? a : 'leaf')}.webp" alt="">`;
+// avatar v Kruhu = parťák člena v jeho dnešní náladě; starší verze appky posílají lenochoda s čepicí (img/avatars)
+const POSES = ['idle', 'calm', 'sad', 'thanks', 'laugh', 'joy', 'focus', 'wow', 'think', 'wave', 'thumbs', 'meditate', 'walk', 'stretch', 'dance', 'cheer', 'book', 'tea', 'sleep', 'key'];
+const avatarImg = (a, mood) => { if (PALS.some(p => p.id === a)) { const pose = palPose(mood || 'face'); return `<img class="av pal" src="img/pals/${a}/${POSES.includes(pose) ? pose : 'idle'}.webp" alt="">`; } return `<img class="av" src="img/avatars/${esc(circle.AVATARS.includes(a) ? a : 'leaf')}.webp" alt="">`; };
 function viewCircle() {
   let h = `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner"><h2 class="sec">Kruh</h2>`;
   const signed = window.cloud && cloud.user();
@@ -894,8 +896,8 @@ function viewCircle() {
   const data = S.social && S.social.data;
   if (circleErr) h += `<p class="note" style="color:var(--red,#c0392b)">${esc(circleErr)}</p>`;
   // já: přezdívka + avatar
-  h += `<section class="card" style="padding:14px 16px"><div style="display:flex;gap:12px;align-items:center">${avatarImg(S.me.avatar)}<div style="flex:1"><label class="note" for="menick" style="display:block;margin-bottom:4px">Jak ti mají říkat</label><input id="menick" class="inp" maxlength="24" value="${esc(S.me.nick)}" style="width:100%"></div></div>
-    <div class="avrow">${circle.AVATARS.map(a => `<button data-avatar="${a}" class="${S.me.avatar === a ? 'on' : ''}" aria-label="Avatar ${a}"><img src="img/avatars/${a}.webp" alt=""></button>`).join('')}</div></section>`;
+  h += `<section class="card" style="padding:14px 16px"><div style="display:flex;gap:12px;align-items:center">${avatarImg(palInfo().id, myStatus().mood)}<div style="flex:1"><label class="note" for="menick" style="display:block;margin-bottom:4px">Jak ti mají říkat</label><input id="menick" class="inp" maxlength="24" value="${esc(S.me.nick)}" style="width:100%"></div></div>
+    <p class="note" style="margin:10px 0 0">Tvůj avatar je tvůj parťák. Ostatní uvidí, jak se dnes tváří.</p>${palGrid()}</section>`;
   // co sdílím
   const sh = S.share || []; const opts = shareable();
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px;margin:0 0 2px">Co sdílím</h3><p class="note" style="margin:0 0 10px">Ostatní uvidí jen počet splněných z těchto aktivit (${sh.length} / ${opts.length}). Názvy ani poznámky nevidí nikdy.</p>
@@ -913,7 +915,7 @@ function viewCircle() {
       const got = todayN.filter(n => n.to_user === m.user_id).length;
       const prog = fresh && st.total ? `dnes ${st.done} z ${st.total} sdílených` : (fresh ? 'nic nesdílí' : 'dnes ještě nic');
       const items = Array.isArray(st.items) ? st.items : []; const openM = S.openMember === m.user_id && fresh && items.length;
-      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Slothkin')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
+      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar, fresh ? st.mood : 'face')}<div class="cinfo"><b>${esc(st.nick || 'Slothkin')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
         ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>
         ${openM ? `<div class="mitems">${items.map(it => `<span class="${it.done ? 'on' : ''}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<i>${esc(it.ic || '•')}</i>`}${esc(it.t)}${it.done ? ' ✓' : ''}</span>`).join('')}</div>` : ''}`;
     }).join('');
