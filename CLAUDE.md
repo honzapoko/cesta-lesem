@@ -1,17 +1,17 @@
-# CLAUDE.md – pravidla pro práci na Klíčkovi
+# CLAUDE.md – pravidla pro práci na Poquitu (dříve Klíček / Slothkin)
 
 Tohle čte Claude při každé práci v repozitáři. Krátké, závazné. Stav projektu a další kroky jsou v `HANDOFF.md`.
 
 ## Co to je
-Klíček (dříve Lenochod) – aplikace na návyky pro Honzu Pokorného a jeho rodinu. Maskot lenochod Klíček. Jeden zdrojový kód běží jako:
-- **PWA** na GitHub Pages: https://honzapoko.github.io/cesta-lesem (repo `honzapoko/cesta-lesem`, větev `main`, nasazení = push),
+Poquito (dříve Slothkin, Klíček, Lenochod) – aplikace na návyky; mezinárodní (9 jazyků, `i18n.js`). Uživatel si vybírá parťáka z 10 zvířátek (`mascot.js`). Jeden zdrojový kód běží jako:
+- **PWA** na GitHub Pages: https://honzapoko.github.io/cesta-lesem (repo `honzapoko/cesta-lesem`, větev `main`, nasazení = push); stěhuje se na Vercel (projekt „poquito“) – veřejná adresa je konstanta `PUBLIC_URL` v `app.js`,
 - **Android appka** přes Capacitor 8 (`cz.honzapoko.klicek`), build dělá Honza na Macu: `git pull && npm run android`.
 
 Každá změna webu je tedy automaticky i změnou appky – stačí commit + push a říct Honzovi, ať spustí `npm run android`.
 
 ## Jazyk a tón
 - S Honzou česky, tykat, krátce, „bottom line“ první. Žádné anglické výrazy, když existuje české slovo.
-- Texty v appce česky, laskavě, bez výčitek (viz koncept: večer bez splnění = odpočinek, ne selhání).
+- Texty v appce česky (zdroj pro překlady; po změně textů `node scripts/i18n-extract.mjs` a doplnit `i18n/*.json`), laskavě, bez výčitek (viz koncept: večer bez splnění = odpočinek, ne selhání).
 - Kód a komentáře: komentáře česky, identifikátory anglicky (`viewGarden`, `PLACE_ITEMS`).
 
 ## Technika (neměnit bez důvodu)

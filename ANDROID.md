@@ -45,18 +45,19 @@ Samsung uspává aplikace. Pro spolehlivé připomínky: Nastavení → Aplikace
 ## 6. Podpis a vydání na Google Play (až bude účet ověřený)
 
 1. Android Studio → Build → Generate Signed Bundle / APK → **Android App Bundle** → Create new keystore. Keystore ulož mimo repozitář a zálohuj (bez něj nejde appku nikdy aktualizovat).
-2. Play Console → Create app → „Klíček“, čeština, zdarma.
+2. Play Console → Create app → „Poquito“, čeština (výchozí), zdarma. Pozor: `applicationId` (dnes `cz.honzapoko.klicek`) je vidět v adrese na Play a po prvním nahrání **nejde změnit** – rozhodnout předem.
 3. Testing → Closed testing → vytvořit track, nahrát `.aab`, přidat e-maily testerů (≥ 12), zveřejnit. Testeři musí být přihlášení 14 dní v kuse.
-4. Vyplnit: App content (zásady ochrany dat – URL, Data safety, Health apps declaration, cílová skupina), Store listing (texty, ikona 512, grafika 1024×500, screenshoty).
+4. Vyplnit: App content (zásady ochrany dat – URL `<PUBLIC_URL>privacy.html` (soubor `privacy.html` v repu), Data safety, Health apps declaration, cílová skupina), Store listing (texty, ikona 512, grafika 1024×500, screenshoty).
 5. Po 14 dnech: Apply for production access → po schválení Production → nahrát a vydat.
 
 Verze: před každým nahráním zvýšit `versionCode` a `versionName` v `android/app/build.gradle`.
 
 ## 7. Widgety
 
-Tři velikosti v nabídce widgetů (podrž prázdné místo na ploše → Widgety → Klíček):
-- **Malý (2×1)**: dnes splněno x/y a dny v řadě.
-- **Střední (4×2)**: 5 úkolů s fajfkami, dny v řadě, věta nálady, Klíček.
-- **Velký (4×4)**: všechny úkoly (až 10), mince, dny v řadě, věta dne, Klíček.
+Čtyři velikosti (podrž prázdné místo na ploše → Widgety → Poquito):
+- **Malý (2×1)**: parťák, dnes splněno x/y, dny v řadě.
+- **Střední (4×2)**: parťák + posouvatelné karty úkolů.
+- **Velký (4×4)**: parťák, mince, nálada, karty úkolů, věta dne.
+- **Úkoly (3×4)**: parťák, karty úkolů s „x z 7 tento týden“ a ukazatelem.
 
-Widget se překreslí po každém uložení v appce a sám každých 30 minut. Ťuknutí kamkoli otevře appku. Kód: `android/app/src/main/java/cz/honzapoko/klicek/KlicekWidget*.java`, vzhled `res/layout/widget_*.xml`.
+Karty (`widget_task_card.xml`, `KlicekWidgetTasksService`) mají ikonu aktivity, název, týdenní průběh a kulaté odškrtávátko – ťuknutí na kartu = fajfka (fronta `pending`, appka ji vyzvedne při otevření). Parťák v náladě = `res/drawable-nodpi/pal_<id>_<póza>.webp`, ikony `act_*`/`ch_*` (generuje `scripts/widget-pals.py`). Kód: `android/app/src/main/java/cz/honzapoko/klicek/KlicekWidget*.java`.

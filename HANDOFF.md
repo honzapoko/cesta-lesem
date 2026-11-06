@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Slothkin, dříve Klíček (6. 11. 2026, verze 1.25)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.26)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -32,6 +32,12 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
 - **Cloud sync**: `days` (per den) + `profiles` (klíče `PROFILE_KEYS`), merge novější vyhrává (`pullMerge`).
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
+- **Nové (6. 11. večer, 1.26)**: název Poquito. Čeká na Honzu:
+  1. **Vercel** – založit projekt z repa (`vercel.com/new` → import `honzapoko/cesta-lesem`, název `poquito`, Framework „Other“, bez build příkazu). MCP `create_git_project` vrátil 403. Pak: `PUBLIC_URL` v `app.js` přepsat na novou adresu → na staré github.io se objeví pruh „Poquito se přestěhovalo“ (přenos dat přes `#move=`).
+  2. **Supabase** – Authentication → URL Configuration → Redirect URLs přidat `https://<nová adresa>/**` (jinak Google přihlášení na nové adrese selže); Site URL přepnout na novou adresu.
+  3. **SQL** `supabase/referrals_v1.sql` (doporučení) spustit v SQL Editoru, ověřit `list_tables` (`referral_codes`, `referrals`).
+  4. **Package id** pro Google Play: dnes `cz.honzapoko.klicek` (je vidět v Play URL a po nahrání nejde změnit). Navrženo `app.poquito` – mění se `applicationId` v `android/app/build.gradle`, `appId` v `capacitor.config.json`, schéma deep linku v `AndroidManifest.xml` + `cloud.js` (`…://auth`) a Redirect URL v Supabase; nainstalované appky = přeinstalovat (data přes cloud/zálohu).
+  5. `privacy.html` je v repu (cs + en) – URL pro Play: `<PUBLIC_URL>privacy.html`.
 - **Nové (6. 11.)**: a) Honza projde překlady v appce (Více → Jazyk) – texty, které zůstaly česky, doplnit: `node scripts/i18n-extract.mjs` ukáže chybějící klíče, přeložit, uložit do `i18n/*.json`, zvednout `?v=` u fetch v `i18n.js`. b) Zahrada/lokality s vybraným parťákem (dnes lenochod) – potřeba pózy do scén. c) ✔ 1.23: avatar v Kruhu = parťák v náladě (`avatarImg(avatar, mood)`, `status.avatar` = id parťáka; staré id čepic se dál kreslí z `img/avatars`). d) ✔ 1.24: widget Úkoly 3×4 + odškrtávání ťuknutím na ploše (fronta `pending` → `applyWidgetPending`), parťák ve widgetech. 1.25: Úkoly = ListView karet (`KlicekWidgetTasksService`, šablona PendingIntent MUTABLE + fill-in id). Názvy drawable jen `[a-z0-9_]` – id s diakritikou převádí `resName()`/`scripts/widget-pals.py`. **Neověřeno na telefonu** – Honza má vyzkoušet: přidat widget „Slothkin – úkoly“, odškrtnout, otevřít appku, fajfka musí zůstat. Zbylé české texty v Javě jen jako výchozí (než appka pošle stav). e) Obsah je místy česko-specifický (výzva „Pro partnerku“, vocativ) – pro mezinárodní verzi projít. f) Ikona appky a Play listing pod novým názvem.
 0. **Tom (syn) testuje a posílá zpětnou vazbu** – vše z 4.–5. 11. vyřešeno (CHANGELOG 1.16–1.21). Nevyjasněno: Tom tvrdí, že na Androidu se zapnutí/vypnutí aktivity projeví až po restartu – na webu nereprodukováno; při další zprávě chtít přesný postup.
 1. **Ověřit SQL v3** – Honza má spustit `supabase/circles_v3.sql` (vzkazy + `status.items`); k 6. 11. 00:30 tabulka `posts` v DB NEBYLA. Ověřit `list_tables`. Kruh „Rodina“: kód **PUTF45**, členové Jan (Honza) a Tom.
