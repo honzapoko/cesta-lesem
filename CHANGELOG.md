@@ -1,6 +1,13 @@
-# CHANGELOG – Klíček
+# CHANGELOG – Slothkin (dříve Klíček / Lenochod)
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
+
+## 1.22 – 2026-11-06 (Honza: nový název, jazyky, parťáci)
+- Nový název **Slothkin** (web, manifest, Android `app_name`, widgety). `appId` zůstává `cz.honzapoko.klicek` – *změna by rozbila přihlášení Googlem a instalaci; na Play se zobrazuje jen název.*
+- **Parťák**: výběr z 10 zvířátek (lenochod, liška, sova, zajíc, medvídek, vydra, panda červená, kočka, pejsek, mýval), 20 póz každé v `img/pals/<id>/<póza>.webp`; volba `S.pal` (karta na Domů, dokud nevybráno; Více → Tvůj parťák), synchronizuje se do cloudu. – *Honza chce, aby si uživatel vybral avatara.*
+- Nálada parťáka (`homeMood`): vše hotovo = nadšený (skáče), aspoň půlka = palec nahoru, něco = jde, nic = ráno mává, odpoledne přemýšlí, večer/minulý den **smutný**, pozdě spí. – *„posmutnělejší, když uživatel neplní, nadšený, když ano“.* Texty dál laskavé.
+- **Jazyky**: čeština + angličtina, španělština, němčina, francouzština, italština, ruština, ukrajinština, polština. Vrstva `i18n.js` překládá hotové DOM podle `i18n/<jazyk>.json` (klíč = český text, vzory `{0}`), dialogy, oznámení a widget přes `window.tr`. Volba ve Více → Jazyk (`S.lang`); nový uživatel dostane jazyk prohlížeče, stávající zůstává v češtině. Extrakce textů `node scripts/i18n-extract.mjs`. – *příprava na mezinárodní vydání.*
+- Texty, kde „Klíček“ vystupoval jako postava, přepsány neutrálně (parťák může být jakékoli zvíře); úroveň „Klíček“ (= klíček rostliny) zůstává.
 
 ## 1.21 – 2026-11-05 (zpětná vazba od Toma)
 - Prodej předmětu zpět za 80 % ceny – *aby nákup nebyl zadarmo vratný, jako v jiných hrách.*

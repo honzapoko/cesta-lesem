@@ -13,7 +13,7 @@
         android:orientation="vertical">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/w_title" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
-                android:text="Klíček" android:textColor="#1E2A4A" android:textSize="17sp" android:textStyle="bold"/>
+                android:text="Slothkin" android:textColor="#1E2A4A" android:textSize="17sp" android:textStyle="bold"/>
             <TextView android:id="@+id/w_progress" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="" android:textColor="#EFA23A" android:textSize="15sp" android:textStyle="bold"/>
         </LinearLayout>
@@ -28,5 +28,5 @@
             android:text="Pomalu, ale jistě." android:textColor="#7A6A55" android:textSize="11sp" android:layout_marginTop="4dp" android:maxLines="2" android:ellipsize="end"/>
     </LinearLayout>
     <ImageView android:id="@+id/w_sloth" android:layout_width="72dp" android:layout_height="72dp" android:layout_gravity="bottom"
-        android:layout_marginStart="8dp" android:src="@drawable/widget_sloth" android:scaleType="fitCenter" android:contentDescription="Klíček"/>
+        android:layout_marginStart="8dp" android:src="@drawable/widget_sloth" android:scaleType="fitCenter" android:contentDescription="Slothkin"/>
 </LinearLayout>

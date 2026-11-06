@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.21'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.22'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -81,7 +81,7 @@ const UNLOCKS = [
   { n: 7, id: 'stats', t: 'Statistiky', d: 'Grafy a úspěšnost za týden a měsíc.', tab: 'stats', where: 'záložka Statistiky' },
   { n: 8, id: 'diary', t: 'Deník vděčnosti', d: 'Všechno, za co jsi byl vděčný, na jednom místě.', tab: 'more', where: 'záložka Více' },
   { n: 9, id: 'levels', t: 'Úrovně a XP', d: 'Body za každý splněný úkol a úrovně od Semínka po Les.', tab: 'home', where: 'Domů a Více' },
-  { n: 10, id: 'flower', t: 'Klíčkovi vykvete květ', d: 'Deset aktivních dní. Klíček to oslaví.', tab: 'home', where: 'Domů, u maskota' }
+  { n: 10, id: 'flower', t: 'Parťákovi vykvete květ', d: 'Deset aktivních dní. Parťák to oslaví.', tab: 'home', where: 'Domů, u parťáka' }
 ];
 // postup appky = aktivní dny (den s aspoň jedním splněným úkolem), ne konkrétní návyk
 const anyDone = day => { const L = S.logs[day]; return !!L && Object.values(L).some(e => e && e.d); };
@@ -196,10 +196,10 @@ function ruleFor(key, def) { return Object.assign({}, DEF_RULE, def || {}, (S.ru
 function setRule(key, patch) { S.rules = S.rules || {}; S.rules[key] = Object.assign(ruleFor(key), patch); save(); applyReminders(); }
 const REM_TEXT = {
   les: ['Les na tebe čeká 🌲', 'Malý krok ráno je víc než velký plán.'], evening: ['Zapiš si den 🌙', 'Co se dnes povedlo? Stačí jedna fajfka.'],
-  piti: ['Napij se 💧', 'Sklenice vody. Klíček připíjí.'], 'ranni-meditace': ['Pět minut klidu 🪷', 'Dech dovnitř, dech ven.'], posilovani: ['Tělo chce pohyb 🏋️', 'Pár opakování stačí.'],
-  zuby: ['Zuby 🪥', 'Dvě minuty a hotovo.'], spanek: ['Čas zpomalit 😴', 'Klíček už klimbá.'], cteni: ['Pár stránek 📖', 'Deset minut s knihou.']
+  piti: ['Napij se 💧', 'Sklenice vody. Na zdraví!'], 'ranni-meditace': ['Pět minut klidu 🪷', 'Dech dovnitř, dech ven.'], posilovani: ['Tělo chce pohyb 🏋️', 'Pár opakování stačí.'],
+  zuby: ['Zuby 🪥', 'Dvě minuty a hotovo.'], spanek: ['Čas zpomalit 😴', 'Pomalu se chystej ke spánku.'], cteni: ['Pár stránek 📖', 'Deset minut s knihou.']
 };
-function remText(key, t) { return REM_TEXT[key] || [t, 'Klíček ti to jen připomíná. Žádný tlak.']; }
+function remText(key, t) { return REM_TEXT[key] || [t, 'Jen připomínka. Žádný tlak.']; }
 function remRules() { return remItems().map(it => { const r = ruleFor(it.key, it.def); const [title, body] = remText(it.key, it.t); return { key: it.key, title, body, image: it.img ? (location.origin + location.pathname.replace(/[^/]*$/, '') + it.img) : null, channel: r.channel, mode: r.mode, at: r.at, every: r.every, from: r.from, to: r.to }; }); }
 function remCard() {
   const CH = (window.native && native.CHANNELS) || [];
@@ -214,11 +214,11 @@ function remCard() {
     <div style="padding:0 16px 8px">${rows}</div>
     <div style="padding:0 16px 14px"><p class="note" style="margin:0 0 8px">Styly: <b>Jemné</b> tiché cinknutí, <b>Výrazné</b> zvuk a vibrace, <b>Tiché</b> jen v liště. Konkrétní zvuk každého stylu změníš v nastavení telefonu:</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">${CH.map(c => `<button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" data-remch="${c.id}">Zvuk: ${c.name}</button>`).join('')}</div>
-    ${S.remindState === 'inexact' ? `<p class="note" style="margin:10px 0 8px">Android může připomínky zpozdit. Povol Klíčkovi přesné budíky a u Samsungu nastav Baterie → Neomezeno.</p><button class="btn sec" id="remExact">Povolit přesné připomínky</button>` : S.remindState === 'denied' ? '<p class="note" style="margin:10px 0 0">Oznámení jsou zakázaná. Povol je v Nastavení → Aplikace → Klíček → Oznámení.</p>' : ''}</div></section>`;
+    ${S.remindState === 'inexact' ? `<p class="note" style="margin:10px 0 8px">Android může připomínky zpozdit. Povol aplikaci přesné budíky a u Samsungu nastav Baterie → Neomezeno.</p><button class="btn sec" id="remExact">Povolit přesné připomínky</button>` : S.remindState === 'denied' ? '<p class="note" style="margin:10px 0 0">Oznámení jsou zakázaná. Povol je v Nastavení → Aplikace → Klíček → Oznámení.</p>' : ''}</div></section>`;
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -292,7 +292,7 @@ function viewDashboard() {
   const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim()).slice(0, 8);
   const p = lv.to ? (lv.x - lv.from) / (lv.to - lv.from) * 100 : 100;
   return `<div class="dash">
-    <div class="dash-head"><div><div class="logo">Klíček${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
+    <div class="dash-head"><div><div class="logo">Slothkin${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
       ${u ? `<button class="btn sec" id="cloudSync" style="width:auto;padding:10px 16px;font-size:14px">Synchronizovat</button>` : `<button class="btn" id="cloudIn" style="width:auto;padding:10px 16px;font-size:14px">Přihlásit přes Google</button>`}</div>
     ${!u ? `<section class="card" style="padding:16px"><b>Tady uvidíš své statistiky a odznaky.</b><p class="note" style="margin:6px 0 0">Přihlas se stejným Google účtem, který jsi propojil v telefonu (Více → Cloud a web). Data z telefonu se sem načtou.</p></section>` : ''}
     <section class="card level"><div class="m">${mascot('happy', { flower: has('flower') })}</div><div style="flex:1;min-width:0"><h3>Úroveň ${lv.i + 1}: ${lv.name}</h3><p>${lv.x} XP${lv.to ? ' · do další úrovně ' + (lv.to - lv.x) + ' XP' : ' · nejvyšší úroveň'}</p><div class="bar"><i style="width:${p}%"></i></div></div></section>
@@ -341,8 +341,8 @@ const I = {
 };
 
 const LEAF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3C10 3 4 8 4 15c0 2 .6 3.8 1.6 5.2C7 13 12 9 17 7c-4 3-8 7-10 14 1 .5 2.2.8 3.4.8C17 21.8 21 15 20 3z" fill="#EFA23A"/></svg>';
-const brand = () => `<div class="brand"><div><div class="logo">Klíček${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
-const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Klíček${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
+const brand = () => `<div class="brand"><div><div class="logo">Slothkin${LEAF}</div><div class="tagline">Slow-play · pomalu, ale jistě</div></div></div>`;
+const phead = (title, sub, mood) => `<header class="phead gut"><div><div class="logo" style="font-size:18px;margin-bottom:10px">Slothkin${LEAF}</div><h2>${title}</h2><p>${sub}</p></div>${mascot(mood || 'face')}</header>`;
 function scene(h = 260) {
   const night = document.documentElement.dataset.theme === 'dark';
   const pines = (y, s, n, fill) => { let o = ''; for (let k = 0; k < n; k++) { const x = (k * 431 / n + (k % 3) * 9) % 430 - 10, sc = s * (0.8 + (k * 37 % 10) / 25); o += `<path d="M${x} ${y}l${10 * sc} -${30 * sc} ${10 * sc} ${30 * sc}z M${x + 3 * sc} ${y - 14 * sc}l${7 * sc} -${22 * sc} ${7 * sc} ${22 * sc}z" fill="${fill}"/>`; } return o; };
@@ -376,6 +376,7 @@ function applyTheme() {
 function render() {
   const t = iso(new Date()); if (t !== TODAY) { TODAY = t; if (cur > TODAY) cur = TODAY; }
   applyTheme();
+  window.mascotPal = palInfo().id;
   const views = { home: viewHome, path: viewGarden, calendar: viewCalendar, stats: viewStats, circle: viewCircle, more: viewMore, pick: viewPick };
   app.innerHTML = views[tab]();
   renderTabs();
@@ -399,24 +400,27 @@ function visibleTasks() {
 function markFull(day) { S.fullDays = S.fullDays || {}; const saved = cur; cur = day; const t = visibleTasks().concat(activeTasks()); const all = t.length > 0 && t.every(isDoneFor); cur = saved; if (all) S.fullDays[day] = 1; else delete S.fullDays[day]; }
 const isDoneFor = s => s.kind === 'week' ? doneDays(s.id).some(d => weekKey(d) === weekKey(cur)) : done(s.id, cur);
 
-// nálada Klíčka podle denní doby a splněných úkolů (laskavě: večer bez splnění = odpočinek, ne výčitka)
+// nálada parťáka podle denní doby a splněných úkolů: čím víc hotovo, tím nadšenější; bez splnění posmutní,
+// ale texty zůstávají laskavé (večer bez splnění = odpočinek, ne výčitka)
 function homeMood(hour, nDone, total, today) {
-  if (total && nDone === total) return total > 1 ? 'heart' : 'happy';
-  if (!today) return nDone ? 'walk' : 'rest';
-  if (hour < 11) return nDone ? 'walk' : 'wave';
-  if (hour < 18) return nDone ? 'walk' : 'stretch';
+  if (total && nDone === total) return total > 1 ? 'cheer' : 'joy';
+  const part = total && nDone / total >= 0.5;
+  if (!today) return nDone ? 'walk' : 'sad';
+  if (hour < 11) return nDone ? (part ? 'thumbs' : 'walk') : 'wave';
+  if (hour < 18) return nDone ? (part ? 'thumbs' : 'walk') : 'think';
   if (hour >= 22) return nDone ? 'book' : 'sleep';
-  return nDone ? 'book' : 'rest';
+  return nDone ? (part ? 'tea' : 'book') : 'sad';
 }
 function moodLead(mood, hour, nDone, total) {
   switch (mood) {
-    case 'heart': case 'happy': return hour >= 18 ? 'Všechno hotovo. Dnes jsi vyhrál, užij si večer.' : 'Všechno hotovo. Dnes už jsi vyhrál.';
-    case 'wave': return 'Dobré ráno. Les na tebe čeká.';
+    case 'cheer': case 'joy': return hour >= 18 ? 'Všechno hotovo. Dnes jsi vyhrál, užij si večer.' : 'Všechno hotovo. Dnes už jsi vyhrál.';
+    case 'wave': return 'Dobré ráno. Den na tebe čeká.';
     case 'walk': return `Jde ti to. ${nDone} z ${total} hotovo, pokračuj svým tempem.`;
-    case 'stretch': return 'Ještě není pozdě. Jedna malá věc stačí.';
-    case 'book': return `Klidný večer. ${nDone} z ${total} máš za sebou.`;
-    case 'rest': return 'Klidný večer. Jednu malou věc ještě stihneš.';
-    case 'sleep': return 'Dnes Klíček odpočíval. Zítra je nový den, žádný stres.';
+    case 'thumbs': return `Skvělé tempo. ${nDone} z ${total} hotovo.`;
+    case 'think': return 'Ještě není pozdě. Jedna malá věc stačí.';
+    case 'book': case 'tea': return `Klidný večer. ${nDone} z ${total} máš za sebou.`;
+    case 'sad': return 'Tvůj parťák je trochu smutný. Jedna malá věc ho rozveselí.';
+    case 'sleep': return 'Dnes byl den odpočinku. Zítra je nový den, žádný stres.';
   }
   return 'Pomalu, ale jistě.';
 }
@@ -425,6 +429,7 @@ function moodLead(mood, hour, nDone, total) {
 // 5. pád pro oslovení (Tom → Tome, Honza → Honzo, Tomáš → Tomáši, Petr → Petře)
 function vocative(n) {
   n = (n || '').trim(); if (!n) return '';
+  if (window.i18n && i18n.lang !== 'cs') return n; // 5. pád jen v češtině
   const X = { 'Petr': 'Petře', 'Pavel': 'Pavle', 'Karel': 'Karle', 'Zdeněk': 'Zdeňku', 'Vojtěch': 'Vojtěchu', 'Jiří': 'Jiří', 'Bedřich': 'Bedřichu', 'Jindřich': 'Jindřichu', 'Aleš': 'Aleši', 'Marie': 'Marie', 'Lucie': 'Lucie', 'Honza': 'Honzo', 'Nikol': 'Nikol', 'Miroslav': 'Miroslave', 'Igor': 'Igore', 'Oskar': 'Oskare' };
   if (X[n]) return X[n];
   const l = n.toLowerCase(), last = l.slice(-1), two = l.slice(-2);
@@ -440,7 +445,12 @@ function vocative(n) {
   return n + 'e';
 }
 function userName() { const n = S.me && S.me.nick; if (n) return n; const u = window.cloud && cloud.user(); const m = u && u.user_metadata; return m ? (m.given_name || (m.full_name || '').split(' ')[0] || '') : ''; }
-function nameCard() { if (userName()) return ''; return `<section class="card" style="padding:12px 16px"><b>Jak ti má Klíček říkat?</b><div style="display:flex;gap:8px;margin-top:8px"><input id="menick" class="inp" maxlength="24" placeholder="Křestní jméno" style="flex:1"><button class="btn" id="nameOk" style="width:auto;padding:10px 14px">Uložit</button></div></section>`; }
+// parťák (S.pal): výběr z 10 zvířátek; dokud si ho uživatel nevybral, ukazuje se na Domů karta s nabídkou
+function setLang(l) { S.lang = l; save(); window.i18n.set(l); }
+function palInfo() { return PALS.find(p => p.id === S.pal) || PALS[0]; }
+function palGrid() { const cur_ = palInfo().id; return `<div class="palgrid">${PALS.map(p => `<button data-pal="${p.id}" class="${cur_ === p.id ? 'on' : ''}" aria-pressed="${cur_ === p.id}"><img src="img/pals/${p.id}/${cur_ === p.id ? 'joy' : 'idle'}.webp" alt=""><span>${esc(p.name)}</span></button>`).join('')}</div>`; }
+function palCard() { if (S.pal) return ''; return `<section class="card" style="padding:12px 14px"><b>Vyber si parťáka</b><span class="note" style="display:block">Bude s tebou každý den. Když se ti daří, raduje se; když ne, trochu posmutní.</span>${palGrid()}</section>`; }
+function nameCard() { if (userName()) return ''; return `<section class="card" style="padding:12px 16px"><b>Jak ti mám říkat?</b><div style="display:flex;gap:8px;margin-top:8px"><input id="menick" class="inp" maxlength="24" placeholder="Křestní jméno" style="flex:1"><button class="btn" id="nameOk" style="width:auto;padding:10px 14px">Uložit</button></div></section>`; }
 // pozvánka do Kruhu na Domů, dokud uživatel v žádném není (Kruhy jsou dostupné od prvního dne)
 function circleTeaser() {
   const inCircle = S.social && S.social.data && S.social.data.circles && S.social.data.circles.length;
@@ -463,7 +473,7 @@ function viewHome() {
       <div class="rt"><small>${cur === TODAY ? 'DNES' : 'DEN'}</small><b>${nDone}/${tasks.length}</b><span>splněno</span></div></div></div></header>
     <div class="banner banner-${mood}">${mascot(mood, { flower: has('flower') })}
       <div class="streakchip">${I.flame}<div><b>${run}</b><span>${plural(run, 'den', 'dny', 'dní')} v řadě</span></div></div>
-      <div class="bubble"><i>🦥</i><span>${esc(bubble)}</span></div></div>
+      <div class="bubble"><i>${palInfo().em}</i><span>${esc(bubble)}</span></div></div>
     <div class="sheet gut"><div class="inner">
     <div class="pill-row">
       <div class="pill">${I.tree}<div><b>${w}</b><br><span>${plural(w, 'aktivní den', 'aktivní dny', 'aktivních dní')}</span></div></div>
@@ -474,7 +484,7 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${nameCard()}${emptyCard()}${circleTeaser()}${gestCard()}
+    ${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${gestCard()}
     <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span></h2>${tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po ${nu.n}. aktivním dni. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
@@ -562,7 +572,7 @@ const SCENES = [
   { id: 'court', t: 'Nádvoří', light: 'right' },
   { id: 'sunset', t: 'Západ slunce', light: 'right' }
 ];
-// další místa (koncept Kruhy, kap. 4): vlastní předměty přijdou, zatím se v nich Klíček jen usadí
+// další místa (koncept Kruhy, kap. 4): vlastní předměty přijdou, zatím se v nich parťák jen usadí
 const PLACES = [
   { id: 'forest', t: 'Lesní mýtina', light: 'right', cond: 'Odemkne 30 aktivních dní', ok: () => walks() >= 30 },
   { id: 'cabin', t: 'Horská chata', light: 'right', cond: 'Odemkne úroveň Stromek', ok: () => level().i >= 3 },
@@ -769,8 +779,8 @@ function viewGarden() {
   const metas = STEPS.filter((s, i) => stepOpen(i)).flatMap(s => s.ms.map(m => ({ s, m }))).map(({ s, m }) => { const v = Math.min(m.val(), m.goal), met = msMet(m);
     return `<div class="ms ${met ? 'met' : ''}"><div class="mtop"><span>${s.ic} ${esc(m.l)}</span><span>${met ? 'Splněno' : v + ' / ' + m.goal}</span></div><div class="bar"><i style="width:${v / m.goal * 100}%"></i></div><div class="rw">${I.gift}<input id="r-${m.id}" data-reward="${m.id}" value="${esc(S.rewards[m.id] || '')}" placeholder="Odměna, třeba dobré jídlo" aria-label="Odměna: ${esc(m.l)}"></div></div>`; }).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět, krátkým podržením a tažením ho přesuneš (i Klíčka).</p></div><div class="coin">🪙 <b>${c}</b></div></div>
-    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = itemById(S.sell); if (!it) return ''; const dep = ALL_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + sellPrice(it) + '? (80 % ceny)'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || (place ? { x: 50, y: 98 } : { x: 50, y: 80 }); return `<button class="gi sloth" data-drag="sloth" aria-label="Klíček, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:${place ? 30 : 24}%;z-index:${Math.round(sp.y)}"><img draggable="false" src="${place ? 'img/places/sloth-' + scene.id : 'img/garden/' + gardenMood()}.webp" alt=""></button>`; })()}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><h2 class="sec">Zahrada</h2><p class="note" style="margin:2px 0 0">Každý splněný úkol přinese mince. Za ně zahradu zvelebuješ; ťuknutím na předmět ho prodáš zpět, krátkým podržením a tažením ho přesuneš (i parťáka).</p></div><div class="coin">🪙 <b>${c}</b></div></div>
+    <div class="garden"><img class="gbg" src="img/${place ? 'places' : 'garden'}/${scene.id}.webp" alt="">${placed}${S.sell ? (() => { const it = itemById(S.sell); if (!it) return ''; const dep = ALL_ITEMS.find(o => o.needs === it.id && owned(o.id)); return `<div class="sellbox"><b>${esc(it.t)}</b><span>${dep ? 'Nejdřív prodej: ' + esc(dep.t) : 'Prodat zpět za 🪙 ' + sellPrice(it) + '? (80 % ceny)'}</span><div><button class="btn sec" data-sellno="1">Nechat</button>${dep ? '' : `<button class="btn" data-sellyes="${it.id}">Prodat</button>`}</div></div>`; })() : ''}${(() => { const sp = pos.sloth || (place ? { x: 50, y: 98 } : { x: 50, y: 80 }); return `<button class="gi sloth" data-drag="sloth" aria-label="Parťák, podržením přesuneš" style="left:${sp.x}%;top:${sp.y}%;width:${place ? 30 : 24}%;z-index:${Math.round(sp.y)}"><img draggable="false" src="${place ? 'img/places/sloth-' + scene.id : 'img/garden/' + gardenMood()}.webp" alt=""></button>`; })()}</div>
     <div class="seg scenes">${SCENES.map(x => `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''}" aria-label="${esc(x.t)}"><img src="img/garden/${x.id}-thumb.webp" alt=""></button>`).join('')}</div>
     <p class="note" style="text-align:center;margin:-6px 0 -4px">Další místa</p>
     <div class="seg scenes">${PLACES.map(x => { const o = placeOpen(x); return `<button data-scene="${x.id}" class="${x.id === scene.id ? 'on' : ''} ${o ? '' : 'lockd'}" aria-label="${esc(x.t)}${o ? '' : ', zamčeno'}"><img src="img/places/${x.id}-thumb.webp" alt="">${o ? '' : '<i>🔒</i>'}</button>`; }).join('')}</div>
@@ -849,7 +859,7 @@ function myStatus() {
   const me = S.me || {};
   const items = ts.map(t => ({ t: t.t, ic: t.img ? null : (t.ms ? null : t.ic), img: t.img ? `img/acts/${t.img}.webp` : (t.ms ? `img/challenges/${t.id}.webp` : null), done: isDoneFor(t) ? 1 : 0 }));
   cur = TODAY; items.forEach((it, k) => { it.done = isDoneFor(ts[k]) ? 1 : 0; }); cur = saved;
-  return { nick: (me.nick || '').trim() || 'Klíček', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true), items };
+  return { nick: (me.nick || '').trim() || 'Slothkin', avatar: me.avatar || 'leaf', day: TODAY, done: done_, total: ts.length, streak: sharedStreak(ts), mood: homeMood(new Date().getHours(), done_, ts.length, true), items };
 }
 let statusT = null, lastStatusJson = '';
 function scheduleStatus() {
@@ -879,7 +889,7 @@ function viewCircle() {
       <p class="note" style="margin:0 0 10px">Kruh potřebuje účet, aby se data potkala.</p><button class="btn" id="cloudIn">Propojit s Google účtem</button></section>`;
     return h + '</div></div>';
   }
-  const me = S.me || {}; const nick = (me.nick || '').trim() || (signed.user_metadata && (signed.user_metadata.given_name || (signed.user_metadata.full_name || '').split(' ')[0])) || 'Klíček';
+  const me = S.me || {}; const nick = (me.nick || '').trim() || (signed.user_metadata && (signed.user_metadata.given_name || (signed.user_metadata.full_name || '').split(' ')[0])) || 'Slothkin';
   if (!S.me || !S.me.nick) { S.me = { nick, avatar: me.avatar || 'leaf' }; }
   const data = S.social && S.social.data;
   if (circleErr) h += `<p class="note" style="color:var(--red,#c0392b)">${esc(circleErr)}</p>`;
@@ -903,7 +913,7 @@ function viewCircle() {
       const got = todayN.filter(n => n.to_user === m.user_id).length;
       const prog = fresh && st.total ? `dnes ${st.done} z ${st.total} sdílených` : (fresh ? 'nic nesdílí' : 'dnes ještě nic');
       const items = Array.isArray(st.items) ? st.items : []; const openM = S.openMember === m.user_id && fresh && items.length;
-      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Klíček')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
+      return `<div class="crow ${isMe ? 'me' : ''}" ${items.length && fresh ? `data-member="${m.user_id}" role="button" tabindex="0" aria-expanded="${!!openM}"` : ''}>${avatarImg(st.avatar)}<div class="cinfo"><b>${esc(st.nick || 'Slothkin')}${isMe ? ' <span class="note">(ty)</span>' : ''}</b><span class="note">${fresh && st.total && st.done === st.total ? '✓ hotovo · ' : ''}${prog}${st.streak ? ` · 🔥 ${st.streak}` : ''}${got ? ` · 💪 ${got}` : ''}${items.length && fresh ? ' ▾' : ''}</span></div>
         ${isMe ? '' : `<button class="btn sec nudge" data-nudge="${c.id}|${m.user_id}" ${sentToday >= 3 ? 'disabled' : ''} aria-label="Držet palce">💪${sentToday ? ` ${sentToday}/3` : ''}</button>`}</div>
         ${openM ? `<div class="mitems">${items.map(it => `<span class="${it.done ? 'on' : ''}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<i>${esc(it.ic || '•')}</i>`}${esc(it.t)}${it.done ? ' ✓' : ''}</span>`).join('')}</div>` : ''}`;
     }).join('');
@@ -912,9 +922,9 @@ function viewCircle() {
       <p class="note" style="margin:2px 0 10px">${mem.length} ${plural(mem.length, 'člen', 'členové', 'členů')} · kód pošli tomu, koho chceš přibrat (max 8).</p>
       ${rows}
       ${mine.length ? `<div class="gotbox"><b>Dnes ti drží palce</b>${mine.map(x => `<span>${x}</span>`).join('')}</div>` : ''}
-      ${(() => { if (!data.posts) return ''; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Klíček')}</option>`).join('');
+      ${(() => { if (!data.posts) return ''; const ps = data.posts.filter(p => p.circle_id === c.id).slice(0, 30); const memberOpts = mem.filter(m => m.user_id !== myId).map(m => `<option value="${m.user_id}">${esc((data.status[m.user_id] || {}).nick || 'Slothkin')}</option>`).join('');
         return `<div class="posts"><b class="plab">Vzkazy</b>${ps.length ? ps.map(p => { const st = data.status[p.user_id] || {}; const to = p.to_user ? (data.status[p.to_user] || {}).nick : ''; const own = p.user_id === myId || c.owner === myId; const d = new Date(p.created_at); const when = d.toISOString().slice(0, 10) === TODAY ? d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : `${d.getDate()}. ${d.getMonth() + 1}.`;
-          return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Klíček')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
+          return `<div class="post ${p.user_id === myId ? 'mine' : ''}">${avatarImg(st.avatar)}<div><small>${esc(st.nick || 'Slothkin')}${to ? ' → ' + esc(to) : ''} · ${when}</small><span>${esc(p.text)}</span></div>${own ? `<button class="px" data-delpost="${p.id}" aria-label="Smazat vzkaz">×</button>` : ''}</div>`; }).join('') : '<p class="note" style="margin:4px 0">Zatím žádný vzkaz. Napiš první.</p>'}
           <div class="quick">${circle.QUICK.map(q => `<button data-quick="${esc(q)}" data-cid="${c.id}">${esc(q)}</button>`).join('')}</div>
           <div class="pform" data-cid="${c.id}"><select class="inp ptо" data-pto style="max-width:38%"><option value="">Všem</option>${memberOpts}</select><input class="inp ptext" maxlength="160" placeholder="Napiš vzkaz…" style="flex:1"><button class="btn psend" data-post="${c.id}" style="width:auto;padding:10px 14px">Poslat</button></div></div>`; })()}
       <div style="display:flex;gap:8px;margin-top:10px"><button class="more" data-share-code="${esc(c.code)}">Sdílet kód</button><button class="more" data-leave="${c.id}" style="margin-left:auto;color:var(--muted)">Opustit kruh</button></div></section>`;
@@ -958,6 +968,8 @@ function viewMore() {
       return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
   }
   if (window.native && native.isNative) h += remCard();
+  h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Jazyk</h3><div class="langrow" data-noi18n>${i18n.LANGS.map(([id, l]) => `<button data-lang="${id}" class="${i18n.lang === id ? 'on' : ''}" lang="${id}">${l}</button>`).join('')}</div></section>`;
+  h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Tvůj parťák</h3><p class="note" style="margin:2px 0 4px">Raduje se, když plníš, a posmutní, když se nedaří.</p>${palGrid()}</section>`;
   h += goalsCard();
   h += cloudCard();
   h += `<section class="card">
@@ -968,7 +980,7 @@ function viewMore() {
       <label class="btn sec" style="text-align:center;cursor:pointer">Obnovit ze zálohy<input type="file" id="imp" accept="application/json,.json" hidden></label>
       <div id="impConfirm"></div>
     </div></section>
-    <p class="note" style="text-align:center">Klíček · pomalu, ale jistě · verze ${APP_VERSION}</p>
+    <p class="note" style="text-align:center">Slothkin · pomalu, ale jistě · verze ${APP_VERSION}</p>
   </div></div>`;
   return h;
 }
@@ -1123,7 +1135,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,[data-pal],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1140,6 +1152,8 @@ document.addEventListener('click', e => {
   if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (ds.pal) { S.pal = ds.pal; save(); render(); return; }
+  if (ds.lang) { setLang(ds.lang); return; }
   if (t.id === 'nameOk') { const v = (document.getElementById('menick').value || '').trim().slice(0, 24); if (!v) return; S.me = S.me || {}; S.me.nick = v; save(); render(); return; }
   if (t.id === 'goaladd') { const v = (document.getElementById('goalt').value || '').trim().slice(0, 60); const c = +document.getElementById('goalc').value || 50; if (!v) { toast('Napiš, co je ten cíl.'); return; } S.goals = S.goals || []; S.goals.push({ id: 'g' + Date.now(), t: v, coins: c }); save(); render(); return; }
   if (ds.goaldone) { const g = (S.goals || []).find(x => x.id === ds.goaldone); if (!g || !confirm(`Opravdu splněno: ${g.t}? Připíšu ti 🪙 ${g.coins}.`)) return; g.done = Date.now(); save(); render(); toast(`Velký cíl splněn. +${g.coins} mincí do zahrady. 🎉`); return; }
@@ -1211,7 +1225,8 @@ function pushWidget() {
       const saved = cur; cur = TODAY;
       const t = visibleTasks().concat(activeTasks()); const done = t.filter(isDoneFor).length;
       const hour = new Date().getHours(); const mood = homeMood(hour, done, t.length, true);
-      const state = { streak: dayRun(), done, total: t.length, coins: coins(), lead: moodLead(mood, hour, done, t.length), quote: has('quote') ? QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length] : '', tasks: t.slice(0, 10).map(x => ({ t: x.t, done: isDoneFor(x) })) };
+      const T_ = window.tr || (x => x); // překlad pro widget (mimo DOM)
+      const state = { streak: dayRun(), done, total: t.length, coins: coins(), lead: T_(moodLead(mood, hour, done, t.length)), quote: has('quote') ? T_(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length]) : '', tasks: t.slice(0, 10).map(x => ({ t: T_(x.t), done: isDoneFor(x) })) };
       cur = saved;
       native.updateWidget(state);
     } catch (e) {}

@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Klíček</string>
-    <string name="title_activity_main">Klíček</string>
+    <string name="app_name">Slothkin</string>
+    <string name="title_activity_main">Slothkin</string>
     <string name="package_name">cz.honzapoko.klicek</string>
     <string name="custom_url_scheme">cz.honzapoko.klicek</string>
     <string name="widget_desc_small">Malý: dnes splněno a dny v řadě</string>
-    <string name="widget_desc">Střední: 5 úkolů, dny v řadě, Klíček</string>
+    <string name="widget_desc">Střední: 5 úkolů, dny v řadě, parťák</string>
     <string name="widget_desc_large">Velký: všechny úkoly, mince, věta dne</string>
 </resources>

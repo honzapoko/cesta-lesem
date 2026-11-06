@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Lenochod</title>
+<title>Slothkin</title>
 <meta name="theme-color" content="#FBF3E6">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preload" as="image" href="img/hero.webp">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap">
 <style>
@@ -55,6 +55,20 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .ringcard span{font-size:11px;color:var(--muted);font-weight:700}
 .banner{position:relative;max-width:560px;margin:4px auto 0;height:250px;overflow:hidden}
 .banner .masc{position:absolute;inset:0}
+.banner::before{content:"";position:absolute;left:50%;top:18px;width:230px;height:230px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,var(--orange-soft) 0,transparent 70%)}
+.banner .masc[class*=masc-]{left:50%;right:auto;width:250px;transform:translateX(-62%);top:-4px;bottom:auto}
+.banner .masc[class*=masc-] img{width:250px;height:250px;object-fit:contain;-webkit-mask-image:none;mask-image:none;filter:drop-shadow(0 10px 14px rgba(120,80,30,.14))}
+.banner .masc-cheer img,.banner .masc-joy img{animation:palhop 1.6s ease-in-out infinite}
+@keyframes palhop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.banner .masc img{animation:none!important}}
+.langrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.langrow button{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+.langrow button.on{border-color:var(--orange);background:var(--orange-soft)}
+.palgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.palgrid button{background:var(--sunk);border:2px solid transparent;border-radius:16px;padding:4px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--ink);font:inherit}
+.palgrid button.on{border-color:var(--orange);background:var(--orange-soft)}
+.palgrid img{width:100%;max-width:64px;aspect-ratio:1;object-fit:contain}
+.palgrid span{font-size:10.5px;font-weight:800;line-height:1.1;text-align:center;min-height:2.2em;display:flex;align-items:center}
 .banner .masc img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 70%,transparent 100%),linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 70%,transparent 100%),linear-gradient(90deg,transparent 0,#000 12%,#000 88%,transparent 100%);mask-composite:intersect}
 :root[data-theme="dark"] .banner .masc img{filter:brightness(.82) saturate(.95)}
 .bubble{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:30px;background:var(--card);color:var(--ink);border-radius:18px;padding:10px 14px;font-size:13px;font-weight:800;max-width:180px;box-shadow:0 8px 24px rgba(120,80,30,.16);display:flex;gap:8px;align-items:flex-start;z-index:1}
@@ -160,7 +174,7 @@ h2.sec{font-size:24px}
 .node{display:flex;gap:14px;align-items:flex-start;position:relative}
 .dot{width:60px;height:60px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:24px;background:var(--sunk);color:var(--lock);border:4px solid var(--bg);z-index:1;overflow:hidden}
 .dot .masc{width:100%;height:100%}
-.dot .masc img{width:100%;height:100%;object-fit:cover}
+.dot .masc img{width:100%;height:100%;object-fit:contain}
 .node.active .dot{box-shadow:0 0 0 3px var(--orange),0 0 0 9px var(--orange-soft)}
 .node.done .dot{background:var(--olive);color:#fff}
 .nc{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:4px}
@@ -221,7 +235,7 @@ h2.sec{font-size:24px}
 .dentry ul{margin:6px 0 0;padding-left:18px}
 .level{display:flex;gap:14px;align-items:center;padding:14px}
 .level .m{width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--orange-soft)}
-.level .m .masc img{width:100%;height:100%;object-fit:cover}
+.level .m .masc img{width:100%;height:100%;object-fit:contain;padding:4px}
 .level h3{font-size:22px}
 .level p{margin:2px 0 6px;color:var(--muted);font-weight:700;font-size:14px}
 
@@ -408,10 +422,11 @@ nav.tabs button.lockd{opacity:.45}
 <div class="cel" id="cel" hidden></div>
 <canvas id="confetti" hidden></canvas>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
-<script src="cloud.js?v=21"></script>
-<script src="circle.js?v=21"></script>
-<script src="native.js?v=21"></script>
-<script src="mascot.js?v=21"></script>
-<script src="app.js?v=21"></script>
+<script src="i18n.js?v=22"></script>
+<script src="cloud.js?v=22"></script>
+<script src="circle.js?v=22"></script>
+<script src="native.js?v=22"></script>
+<script src="mascot.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

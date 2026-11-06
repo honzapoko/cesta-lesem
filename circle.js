@@ -1,4 +1,4 @@
-// Klíček – Kruhy: datová vrstva nad Supabase (viz KONCEPT-KRUHY.md a supabase/circles_v1.sql).
+// Slothkin (dříve Klíček) – Kruhy: datová vrstva nad Supabase (viz KONCEPT-KRUHY.md a supabase/circles_v1.sql).
 // Všechno jde přes cloud.sb() a RPC; appka bez přihlášení funguje beze změny.
 (() => {
   'use strict';
@@ -8,7 +8,7 @@
 
   window.circle = {
     AVATARS: ['leaf', 'glasses', 'beanie', 'flower', 'scarf', 'headphones', 'crown', 'cap'],
-    KINDS: { palec: '💪 Držím palce', mysli: '🦥 Klíček na tebe myslí', gratulace: '🎉 Gratuluju' },
+    KINDS: { palec: '💪 Držím palce', mysli: '🦥 Myslím na tebe', gratulace: '🎉 Gratuluju' },
     ready: () => !!(sb() && uid()),
     uid,
     // moje kruhy + členové + jejich stav + dnešní palce

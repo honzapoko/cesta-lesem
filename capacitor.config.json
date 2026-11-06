@@ -1,6 +1,6 @@
 {
   "appId": "cz.honzapoko.klicek",
-  "appName": "Klíček",
+  "appName": "Slothkin",
   "webDir": "www",
   "android": { "allowMixedContent": false },
   "server": { "androidScheme": "https" },

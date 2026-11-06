@@ -1,4 +1,4 @@
-// Klíček – nativní vrstva (Capacitor). Na webu se nic z toho nespustí, appka funguje jako dřív.
+// Slothkin (dříve Klíček) – nativní vrstva (Capacitor). Na webu se nic z toho nespustí, appka funguje jako dřív.
 (() => {
   'use strict';
   const Cap = window.Capacitor;
@@ -34,7 +34,7 @@
   let channelsReady = false;
   async function ensureChannels() {
     const LN = P().LocalNotifications; if (!LN || channelsReady) return;
-    for (const c of CHANNELS) { try { await LN.createChannel({ id: c.id, name: c.name, description: c.description, importance: c.importance, vibration: c.vibration, sound: c.sound || undefined, visibility: 1, lights: true, lightColor: '#EFA23A' }); } catch (e) {} }
+    for (const c of CHANNELS) { try { await LN.createChannel({ id: c.id, name: (window.tr || (x => x))(c.name), description: (window.tr || (x => x))(c.description), importance: c.importance, vibration: c.vibration, sound: c.sound || undefined, visibility: 1, lights: true, lightColor: '#EFA23A' }); } catch (e) {} }
     channelsReady = true;
   }
   async function ensurePermission() {
@@ -57,7 +57,7 @@
     const list = [];
     for (const r of rules) {
       if (!r || r.mode === 'off') continue;
-      const base = { title: r.title, body: r.body, channelId: r.channel || 'gentle', smallIcon: 'ic_stat_klicek', largeIcon: 'widget_sloth', extra: { key: r.key } };
+      const base = { title: (window.tr || (x => x))(r.title), body: (window.tr || (x => x))(r.body), channelId: r.channel || 'gentle', smallIcon: 'ic_stat_klicek', largeIcon: 'widget_sloth', extra: { key: r.key } };
       if (r.image) base.attachments = [{ id: 'img', url: r.image }];
       if (r.mode === 'daily') list.push(Object.assign({ id: idFor(r.key, 'd'), schedule: { on: hm(r.at), allowWhileIdle: true } }, base));
       else if (r.mode === 'interval') {
@@ -80,7 +80,7 @@
   }
   async function testNotify(rule) {
     const LN = P().LocalNotifications; if (!LN) return; await ensurePermission(); await ensureChannels();
-    const base = { id: 999999, title: rule.title, body: rule.body, channelId: rule.channel || 'gentle', smallIcon: 'ic_stat_klicek', largeIcon: 'widget_sloth', schedule: { at: new Date(Date.now() + 1500) } };
+    const base = { id: 999999, title: (window.tr || (x => x))(rule.title), body: (window.tr || (x => x))(rule.body), channelId: rule.channel || 'gentle', smallIcon: 'ic_stat_klicek', largeIcon: 'widget_sloth', schedule: { at: new Date(Date.now() + 1500) } };
     if (rule.image) base.attachments = [{ id: 'img', url: rule.image }];
     await LN.schedule({ notifications: [base] });
   }
