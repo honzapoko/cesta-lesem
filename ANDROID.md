@@ -35,7 +35,7 @@ a pak Run ▶ v Android Studiu, nebo rovnou `npm run android`.
 
 - Připomínky (Více → Připomínky): ráno a večer, nastavitelné časy, přesné alarmy. Při prvním spuštění se appka zeptá na povolení oznámení.
 - Data jsou zrcadlená do nativního úložiště (přežijí vyčištění WebView). Při prvním spuštění nativní appky si data z PWA **nepřenesou** automaticky (jiné úložiště) – použij Více → Stáhnout zálohu v PWA a Obnovit ze zálohy v appce, nebo cloud.
-- Přihlášení přes Google: v appce se otevře systémový prohlížeč, po přihlášení se Google vrátí přes odkaz `cz.honzapoko.klicek://auth` zpět do appky (intent-filter v manifestu). V Supabase musí být tato adresa v Authentication → URL Configuration → Redirect URLs jako `cz.honzapoko.klicek://**`.
+- Přihlášení přes Google: v appce se otevře systémový prohlížeč, po přihlášení se Google vrátí přes odkaz `app.poquito://auth` zpět do appky (intent-filter v manifestu). V Supabase musí být tato adresa v Authentication → URL Configuration → Redirect URLs jako `cz.honzapoko.klicek://**`.
 - Vše ostatní (zahrada, cloud, katalog) beze změny.
 
 ## 5. Samsung a připomínky
@@ -45,7 +45,7 @@ Samsung uspává aplikace. Pro spolehlivé připomínky: Nastavení → Aplikace
 ## 6. Podpis a vydání na Google Play (až bude účet ověřený)
 
 1. Android Studio → Build → Generate Signed Bundle / APK → **Android App Bundle** → Create new keystore. Keystore ulož mimo repozitář a zálohuj (bez něj nejde appku nikdy aktualizovat).
-2. Play Console → Create app → „Poquito“, čeština (výchozí), zdarma. Pozor: `applicationId` (dnes `cz.honzapoko.klicek`) je vidět v adrese na Play a po prvním nahrání **nejde změnit** – rozhodnout předem.
+2. Play Console → Create app → „Poquito“, čeština (výchozí), zdarma. `applicationId` je `app.poquito` (rozhodnuto 7. 11. 2026, po prvním nahrání **nejde změnit**).
 3. Testing → Closed testing → vytvořit track, nahrát `.aab`, přidat e-maily testerů (≥ 12), zveřejnit. Testeři musí být přihlášení 14 dní v kuse.
 4. Vyplnit: App content (zásady ochrany dat – URL `<PUBLIC_URL>privacy.html` (soubor `privacy.html` v repu), Data safety, Health apps declaration, cílová skupina), Store listing (texty, ikona 512, grafika 1024×500, screenshoty).
 5. Po 14 dnech: Apply for production access → po schválení Production → nahrát a vydat.

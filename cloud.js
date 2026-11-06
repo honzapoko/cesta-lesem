@@ -32,8 +32,8 @@
     async signIn() {
       if (!ready()) throw new Error('offline');
       const isNat = !!(window.native && window.native.isNative);
-      // v Android appce: přihlášení proběhne v systémovém prohlížeči a Google se vrátí přes cz.honzapoko.klicek://auth
-      const redirectTo = isNat ? 'cz.honzapoko.klicek://auth' : location.origin + location.pathname;
+      // v Android appce: přihlášení proběhne v systémovém prohlížeči a Google se vrátí přes app.poquito://auth (v Supabase musí být v Redirect URLs)
+      const redirectTo = isNat ? 'app.poquito://auth' : location.origin + location.pathname;
       const { data, error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: isNat } });
       if (error) throw error;
       if (isNat && data && data.url) window.open(data.url, '_system');

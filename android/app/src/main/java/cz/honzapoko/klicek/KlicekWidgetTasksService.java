@@ -50,7 +50,7 @@ public class KlicekWidgetTasksService extends RemoteViewsService {
             rv.setTextViewText(R.id.w_count, countFmt.replace("{0}", String.valueOf(wk)).replace("{1}", String.valueOf(goal)));
             rv.setProgressBar(R.id.w_prog, goal, wk, false);
             String icon = t.optString("icon", "");
-            int res = icon.isEmpty() ? 0 : ctx.getResources().getIdentifier(icon, "drawable", ctx.getPackageName());
+            int res = icon.isEmpty() ? 0 : KlicekWidget.drawable(ctx, icon);
             if (res != 0) {
                 rv.setImageViewResource(R.id.w_icon, res);
                 rv.setViewVisibility(R.id.w_icon, View.VISIBLE); rv.setViewVisibility(R.id.w_emoji, View.GONE);

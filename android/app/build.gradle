@@ -4,7 +4,7 @@ android {
     namespace = "cz.honzapoko.klicek"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "cz.honzapoko.klicek"
+        applicationId "app.poquito" // viditelné na Google Play, po prvním nahrání neměnit; Java balíček (namespace) zůstává
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

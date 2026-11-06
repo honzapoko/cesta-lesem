@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.27)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.28)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -7,7 +7,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
 |---|---|
 | Repo | github.com/honzapoko/cesta-lesem, větev `main`, 35+ commitů |
 | Web (PWA) | https://honzapoko.github.io/cesta-lesem |
-| Android | Capacitor 8, `cz.honzapoko.klicek` (appId nechat!), název Slothkin; `npm run android` na Honzově Macu; návod `ANDROID.md` |
+| Android | Capacitor 8, applicationId `app.poquito` (neměnit, Google Play), Java balíček `cz.honzapoko.klicek`, název Poquito; `npm run android` na Honzově Macu; návod `ANDROID.md` |
 | Cloud | Supabase `jsyzrpdeyujqkgmuydlp`; tabulky `days`, `profiles`, `circles`, `members`, `status`, `nudges`, `posts` (posts jen pokud Honza spustil `supabase/circles_v2_posts.sql`) |
 | Google OAuth | nastaveno (Google Cloud projekt, test users = rodina). Web i Android přihlášení ověřeno 3. 11. |
 | Parťáci | `img/pals/<id>/<póza>.webp` (10 zvířat × 20 póz, 300×300 průhledné), seznam `PALS` a mapování nálada→póza `MOOD_POSE` v `mascot.js`; řezání `scripts/cut-pals.py` |
@@ -36,7 +36,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
   1. ✔ **Vercel**: https://poquito-roan.vercel.app (projekt `poquito`, team `jan-pokornys-projects`; `vercel.json` → `outputDirectory: www`, build `npm run build`; service worker jen na webu). `PUBLIC_URL` přepnut; na github.io pruh s přesunem dat (`#move=`). GitHub Pages zatím nechat běžet kvůli přesunu.
   2. **Supabase** – Authentication → URL Configuration → Redirect URLs přidat `https://<nová adresa>/**` (jinak Google přihlášení na nové adrese selže); Site URL přepnout na novou adresu.
   3. **SQL** `supabase/referrals_v1.sql` (doporučení) spustit v SQL Editoru, ověřit `list_tables` (`referral_codes`, `referrals`).
-  4. **Package id** pro Google Play: dnes `cz.honzapoko.klicek` (je vidět v Play URL a po nahrání nejde změnit). Navrženo `app.poquito` – mění se `applicationId` v `android/app/build.gradle`, `appId` v `capacitor.config.json`, schéma deep linku v `AndroidManifest.xml` + `cloud.js` (`…://auth`) a Redirect URL v Supabase; nainstalované appky = přeinstalovat (data přes cloud/zálohu).
+  4. ✔ **Package id** `app.poquito` (1.28). Honza: v Supabase Redirect URLs přidat `app.poquito://auth`; nová appka se nainstaluje vedle staré „Klíček“ – přihlásit, stáhnout data z cloudu, pak starou odinstalovat.
   5. `privacy.html` je v repu (cs + en) – URL pro Play: `<PUBLIC_URL>privacy.html`.
 - **Nové (6. 11.)**: a) Honza projde překlady v appce (Více → Jazyk) – texty, které zůstaly česky, doplnit: `node scripts/i18n-extract.mjs` ukáže chybějící klíče, přeložit, uložit do `i18n/*.json`, zvednout `?v=` u fetch v `i18n.js`. b) Zahrada/lokality s vybraným parťákem (dnes lenochod) – potřeba pózy do scén. c) ✔ 1.23: avatar v Kruhu = parťák v náladě (`avatarImg(avatar, mood)`, `status.avatar` = id parťáka; staré id čepic se dál kreslí z `img/avatars`). d) ✔ 1.24: widget Úkoly 3×4 + odškrtávání ťuknutím na ploše (fronta `pending` → `applyWidgetPending`), parťák ve widgetech. 1.25: Úkoly = ListView karet (`KlicekWidgetTasksService`, šablona PendingIntent MUTABLE + fill-in id). Názvy drawable jen `[a-z0-9_]` – id s diakritikou převádí `resName()`/`scripts/widget-pals.py`. **Neověřeno na telefonu** – Honza má vyzkoušet: přidat widget „Slothkin – úkoly“, odškrtnout, otevřít appku, fajfka musí zůstat. Zbylé české texty v Javě jen jako výchozí (než appka pošle stav). e) Obsah je místy česko-specifický (výzva „Pro partnerku“, vocativ) – pro mezinárodní verzi projít. f) Ikona appky a Play listing pod novým názvem.
 0. **Tom (syn) testuje a posílá zpětnou vazbu** – vše z 4.–5. 11. vyřešeno (CHANGELOG 1.16–1.21). Nevyjasněno: Tom tvrdí, že na Androidu se zapnutí/vypnutí aktivity projeví až po restartu – na webu nereprodukováno; při další zprávě chtít přesný postup.

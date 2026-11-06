@@ -1,5 +1,5 @@
 {
-  "appId": "cz.honzapoko.klicek",
+  "appId": "app.poquito",
   "appName": "Poquito",
   "webDir": "www",
   "android": { "allowMixedContent": false },

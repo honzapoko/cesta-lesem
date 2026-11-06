@@ -106,6 +106,13 @@ public class KlicekWidget extends AppWidgetProvider {
         }
     }
 
+    /** Drawable podle jména; balíček zdrojů může být applicationId (app.poquito) i namespace (cz.honzapoko.klicek). */
+    static int drawable(Context ctx, String name) {
+        int r = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
+        if (r == 0) r = ctx.getResources().getIdentifier(name, "drawable", "cz.honzapoko.klicek");
+        return r;
+    }
+
     static String plural(int n, String a, String b, String c) { return n == 1 ? a : (n >= 2 && n <= 4 ? b : c); }
 
     /** Obrázek parťáka podle nálady: drawable pal_<id>_<póza> (viz scripts/widget-pals.py). */
@@ -121,8 +128,8 @@ public class KlicekWidget extends AppWidgetProvider {
             case "sleep": pose = "sleep"; break;
             default: pose = "idle";
         }
-        int r = ctx.getResources().getIdentifier("pal_" + pal + "_" + pose, "drawable", ctx.getPackageName());
-        if (r == 0) r = ctx.getResources().getIdentifier("pal_sloth_" + pose, "drawable", ctx.getPackageName());
+        int r = drawable(ctx, "pal_" + pal + "_" + pose);
+        if (r == 0) r = drawable(ctx, "pal_sloth_" + pose);
         return r != 0 ? r : R.drawable.widget_sloth;
     }
 

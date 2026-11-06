@@ -2,6 +2,9 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.28 – 2026-11-07 (Honza: identifikátor pro Google Play)
+- `applicationId` / `appId` **`app.poquito`** (dřív `cz.honzapoko.klicek`), návrat z přihlášení `app.poquito://auth`. Java balíček (namespace) beze změny; widgety hledají obrázky v obou balíčcích zdrojů. – *Honza: v adrese na Google Play nemá být honzapoko; po prvním nahrání by to už nešlo změnit.* Na telefonu se appka nainstaluje jako nová (vedle staré).
+
 ## 1.27 – 2026-11-07 (Honza: nová adresa)
 - Web běží na **https://poquito-roan.vercel.app** (Vercel, nasazení po každém pushi do `main`; `vercel.json` → výstup `www/`). `PUBLIC_URL` přepnut → na staré github.io se ukáže pruh s přesunem dat. – *Honza nechce v adrese honzapoko/github/cesta-lesem.*
 

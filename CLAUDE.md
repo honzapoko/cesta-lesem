@@ -5,7 +5,7 @@ Tohle čte Claude při každé práci v repozitáři. Krátké, závazné. Stav 
 ## Co to je
 Poquito (dříve Slothkin, Klíček, Lenochod) – aplikace na návyky; mezinárodní (9 jazyků, `i18n.js`). Uživatel si vybírá parťáka z 10 zvířátek (`mascot.js`). Jeden zdrojový kód běží jako:
 - **PWA** na GitHub Pages: https://honzapoko.github.io/cesta-lesem (repo `honzapoko/cesta-lesem`, větev `main`, nasazení = push); stěhuje se na Vercel (projekt „poquito“) – veřejná adresa je konstanta `PUBLIC_URL` v `app.js`,
-- **Android appka** přes Capacitor 8 (`cz.honzapoko.klicek`), build dělá Honza na Macu: `git pull && npm run android`.
+- **Android appka** přes Capacitor 8 (`applicationId` **`app.poquito`** – je na Google Play, neměnit; Java balíček/namespace zůstává `cz.honzapoko.klicek`), build dělá Honza na Macu: `git pull && npm run android`.
 
 Každá změna webu je tedy automaticky i změnou appky – stačí commit + push a říct Honzovi, ať spustí `npm run android`.
 
@@ -37,7 +37,7 @@ Každá změna webu je tedy automaticky i změnou appky – stačí commit + pus
 
 ## Supabase
 - Projekt `jsyzrpdeyujqkgmuydlp` (eu-west-1), org „honzapoko's Org“, dashboard https://supabase.com/dashboard/project/jsyzrpdeyujqkgmuydlp
-- Publishable key v `cloud.js`. Přihlášení Google OAuth (web: návrat na stránku; Android: `cz.honzapoko.klicek://auth`).
+- Publishable key v `cloud.js`. Přihlášení Google OAuth (web: návrat na stránku; Android: `app.poquito://auth` – musí být v Supabase → Authentication → Redirect URLs).
 - SQL migrace držet v `supabase/*.sql` (idempotentní). MCP nástroj `apply_migration`/`execute_sql` u DDL často čeká na potvrzení, které k Honzovi nedojde → pošli mu `.sql` soubor a odkaz na SQL Editor: https://supabase.com/dashboard/project/jsyzrpdeyujqkgmuydlp/sql/new
 - Funkce v SQL: `set search_path = public` → pgcrypto (`gen_random_bytes`) tam NENÍ, nepoužívat.
 - Ladění: `query_logs` (zdroje `edge_logs`, `auth_logs`, `postgres_logs`, `postgrest_logs`) – 404 u RPC = koukni do `postgres_logs`, bývá tam skutečná chyba.
