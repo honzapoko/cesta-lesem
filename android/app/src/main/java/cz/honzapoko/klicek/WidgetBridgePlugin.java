@@ -26,4 +26,16 @@ public class WidgetBridgePlugin extends Plugin {
         ret.put("ok", true);
         call.resolve(ret);
     }
+
+    /** Vydá a vyprázdní frontu odškrtnutí z widgetu (appka je zapíše do záznamů). */
+    @PluginMethod
+    public void takePending(PluginCall call) {
+        Context ctx = getContext();
+        SharedPreferences sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String pending = sp.getString("pending", "[]");
+        sp.edit().putString("pending", "[]").apply();
+        JSObject ret = new JSObject();
+        ret.put("json", pending);
+        call.resolve(ret);
+    }
 }

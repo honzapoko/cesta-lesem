@@ -38,6 +38,10 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_large_info" />
         </receiver>
+        <receiver android:name=".KlicekWidgetTasks" android:exported="true" android:label="Slothkin – úkoly">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_tasks_info" />
+        </receiver>
         <receiver android:name=".KlicekWidget" android:exported="true" android:label="Slothkin – střední">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

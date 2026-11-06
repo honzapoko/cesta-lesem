@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget 3x4 „Úkoly“: nahoře parťák v náladě + počet splněných, pod tím až 8 úkolů; ťuknutím na řádek se úkol odškrtne. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_bg" android:orientation="vertical" android:padding="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <ImageView android:id="@+id/w_sloth" android:layout_width="64dp" android:layout_height="64dp" android:src="@drawable/widget_sloth" android:scaleType="fitCenter" android:contentDescription="Slothkin"/>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginStart="8dp">
+            <TextView android:id="@+id/w_progress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="–" android:textColor="#1E2A4A" android:textSize="24sp" android:textStyle="bold"/>
+            <TextView android:id="@+id/w_streak" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 dní v řadě" android:textColor="#7A6A55" android:textSize="12sp" android:maxLines="1" android:ellipsize="end"/>
+        </LinearLayout>
+    </LinearLayout>
+    <TextView android:id="@+id/w_lead" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Pomalu, ale jistě." android:textColor="#7A6A55" android:textSize="12sp" android:maxLines="2" android:ellipsize="end" android:layout_marginTop="4dp" android:layout_marginBottom="4dp"/>
+    <TextView android:id="@+id/w_t1" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t2" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t3" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t4" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t5" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t6" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t7" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_t8" style="@style/WidgetTaskRow"/>
+    <TextView android:id="@+id/w_more" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="" android:textColor="#9A8A75" android:textSize="11sp" android:gravity="center_horizontal" android:layout_marginTop="2dp" android:visibility="gone"/>
+</LinearLayout>

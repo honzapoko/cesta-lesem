@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.23'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.24'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -1220,7 +1220,7 @@ matchMedia('(min-width: 960px)').addEventListener('change', () => render());
 document.addEventListener('change', e => { const el = e.target; if (!el.dataset.rule) return; const f = el.dataset.field; let v = el.value; if (f === 'every') v = +v; setRule(el.dataset.rule, { [f]: v }); if (f === 'mode') render(); });
 let widgetT = null;
 function pushWidget() {
-  if (!window.native || !native.isNative) return;
+  if (!window.native || !native.isNative || !widgetSynced) return; // nejdřív vyzvednout fajfky z widgetu, jinak bychom je přepsali
   clearTimeout(widgetT);
   widgetT = setTimeout(() => {
     try {
@@ -1228,17 +1228,33 @@ function pushWidget() {
       const t = visibleTasks().concat(activeTasks()); const done = t.filter(isDoneFor).length;
       const hour = new Date().getHours(); const mood = homeMood(hour, done, t.length, true);
       const T_ = window.tr || (x => x); // překlad pro widget (mimo DOM)
-      const state = { streak: dayRun(), done, total: t.length, coins: coins(), lead: T_(moodLead(mood, hour, done, t.length)), quote: has('quote') ? T_(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length]) : '', tasks: t.slice(0, 10).map(x => ({ t: T_(x.t), done: isDoneFor(x) })) };
+      const run = dayRun();
+      const state = { day: TODAY, pal: palInfo().id, mood, streak: run, streakTxt: run + ' ' + T_(plural(run, 'den v řadě', 'dny v řadě', 'dní v řadě')), tapHint: T_('Ťuknutím na úkol ho odškrtneš.'), done, total: t.length, coins: coins(), lead: T_(moodLead(mood, hour, done, t.length)), quote: has('quote') ? T_(QUOTES[(Math.floor(fromIso(TODAY) / 864e5)) % QUOTES.length]) : '', tasks: t.slice(0, 10).map(x => ({ id: x.id, w: x.kind === 'week' ? 1 : 0, t: T_(x.t), done: isDoneFor(x) })) };
       cur = saved;
       native.updateWidget(state);
     } catch (e) {}
   }, 300);
 }
+// fajfky z widgetu na ploše: zapsat do záznamů (jen posledních BACK dní a jen úkoly, které ten den existují)
+var widgetSynced = false; // var: save() může běžet dřív, než se tenhle řádek vykoná
+async function applyWidgetPending() {
+  if (!window.native || !native.isNative || !native.takeWidgetPending) { widgetSynced = true; return; }
+  const list = await native.takeWidgetPending(); widgetSynced = true;
+  let changed = false, celebrate = null;
+  for (const p of list) {
+    if (!p || !p.id || !p.day || p.day > TODAY || p.day < addDays(TODAY, -BACK)) continue;
+    const saved = cur; cur = p.day; const ids = new Set(visibleTasks().concat(activeTasks()).map(t => t.id)); cur = saved;
+    if (!ids.has(p.id)) continue;
+    setEntry(p.id, { d: !!p.done }, p.day); markFull(p.day); changed = true;
+    if (p.done && p.day === TODAY) celebrate = p.id; else if (celebrate === p.id) celebrate = null;
+  }
+  if (changed) { save(); render(); if (celebrate && done(celebrate, TODAY)) afterToggle(celebrate); } else pushWidget();
+}
 let remT = null;
 function applyReminders() { if (!window.native || !native.isNative) return; clearTimeout(remT); remT = setTimeout(async () => { const st = await native.scheduleRules(remRules()); if (st !== S.remindState) { S.remindState = st; save(); render(); } }, 600); }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && iso(new Date()) !== TODAY) { cur = iso(new Date()); render(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { widgetSynced = false; return; } if (iso(new Date()) !== TODAY) { cur = iso(new Date()); render(); } applyWidgetPending(); });
 
-(async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); pushWidget(); } })();
+(async () => { if (window.native && native.isNative) { const changed = await native.restoreFromPrefs(); if (changed) { try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) {} } render(); setTimeout(applyReminders, 1500); applyWidgetPending(); } })();
 render();
 app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('ptext')) { e.preventDefault(); const b = e.target.closest('.pform').querySelector('.psend'); if (b) b.click(); } });
 app.addEventListener('change', e => { if (e.target && e.target.id === 'menick') { S.me = S.me || {}; S.me.nick = e.target.value.trim().slice(0, 24); save(); } });

@@ -2,6 +2,11 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.24 – 2026-11-06 (Honza: víc widgetů, odškrtávání na ploše)
+- Nový widget **Úkoly 3×4** (`KlicekWidgetTasks`, `widget_tasks.xml`): parťák v náladě, splněno x / y, dny v řadě, až 8 dnešních úkolů. – *Honza chtěl widget 3×4, kde vidí úkoly a co je splněno.*
+- **Fajfka přímo na ploše** (střední, velký i Úkoly): ťuknutí na úkol ho ve widgetu hned přepne a zařadí do fronty `pending` (SharedPreferences); appka si frontu vyzvedne při otevření/návratu (`WidgetBridge.takePending` → `applyWidgetPending`) a zapíše do záznamů, pak teprve posílá nový stav widgetu (`widgetSynced`), aby fajfky nepřepsala. Po půlnoci widget sám ukáže denní úkoly jako nesplněné. – *aby nemusel kvůli fajfce otevírat appku.*
+- Všechny widgety ukazují **vybraného parťáka v náladě** (`res/drawable-nodpi/pal_<id>_<póza>.webp`, generuje `scripts/widget-pals.py`) místo lenochoda; „dny v řadě“ a nápověda chodí přeložené z appky.
+
 ## 1.23 – 2026-11-06 (Honza: parťák jako avatar v Kruhu)
 - Avatar v Kruhu = vybraný parťák v **dnešní náladě** člena (raduje se / smutní podle sdílených aktivit); výběr parťáka i přímo v Kruhu místo 8 lenochodů s čepicí. Nálada do Kruhu se počítá jen ze sdílených aktivit (soukromí); kdo nic nesdílí, má neutrální pózu. Členové se starší verzí dál ukazují lenochoda s čepicí. – *Honza chtěl parťáka i v Kruhu.*
 

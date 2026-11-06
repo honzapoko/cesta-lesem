@@ -91,11 +91,13 @@
   ]); }
   async function openExactSetting() { try { await P().LocalNotifications.changeExactNotificationSetting(); } catch (e) {} }
 
+  // fajfky odškrtnuté přímo ve widgetu (fronta v SharedPreferences), vyzvedne je app.js
+  async function takeWidgetPending() { try { const W = P().WidgetBridge; if (!W || !W.takePending) return []; const r = await W.takePending(); return JSON.parse((r && r.json) || '[]'); } catch (e) { return []; } }
   async function updateWidget(state) { try { const W = P().WidgetBridge; if (W) await W.update({ json: JSON.stringify(state) }); } catch (e) {} }
 
   // návrat z Google přihlášení (cz.honzapoko.klicek://auth?code=...)
   if (isNative && P().App && P().App.addListener) {
     try { P().App.addListener('appUrlOpen', ({ url }) => { if (url && url.startsWith('cz.honzapoko.klicek://') && window.cloud) cloud.handleDeepLink(url); }); } catch (e) {}
   }
-  window.native = { isNative, restoreFromPrefs, mirror, schedule, scheduleRules, openExactSetting, openChannelSettings, testNotify, updateWidget, CHANNELS };
+  window.native = { isNative, restoreFromPrefs, mirror, schedule, scheduleRules, openExactSetting, openChannelSettings, testNotify, updateWidget, takeWidgetPending, CHANNELS };
 })();
