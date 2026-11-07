@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.28)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (6. 11. 2026, verze 1.29)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -68,6 +68,7 @@ Skript ve stylu `cutitems.py`: PIL + numpy + scipy.ndimage.
 Trvá ~2,5 s/obrázek → spouštět na pozadí (`run_in_background`) a čekat `until`-smyčkou.
 
 ## 6. Známé pasti
+- Vyhledávání ve výběru aktivit (`applyPickFilter`) filtruje hotové DOM; po `render()` se znovu použije přes `queueMicrotask`, aby běželo až po překladu (i18n MutationObserver).
 - **Překlady**: každý nový/změněný český text v kódu = nový klíč → bez překladu zůstane česky. Po změně textů vždy `node scripts/i18n-extract.mjs` a doplnit. Text skládaný z kousků (`'a' + x + 'b'`, šablony) se překládá jako vzor jen tehdy, když je v DOM v jednom textovém uzlu; věty rozdělené tagy `<b>` se překládají po kouscích. Uživatelský obsah (vlastní aktivity, vzkazy) se nepřekládá, jen když se náhodou shoduje s klíčem.
 - Slovník je cachovaný v `localStorage['slothkin-i18n']`; po úpravě `i18n/*.json` zvednout `?v=N` ve `fetch` v `i18n.js`.
 - `const native = window.native && native.isNative` → TDZ chyba (stínění). Pojmenovat jinak.

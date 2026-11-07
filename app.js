@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.28'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.29'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -172,16 +172,36 @@ function activeTasks() {
     return null;
   }).filter(Boolean);
 }
+// vyhledávání ve výběru aktivit: filtruje hotové DOM (bez renderu, aby nezmizela klávesnice);
+// porovnává zobrazený text (tedy i přeložený) bez diakritiky; nadpis skupiny, který odpovídá, ukáže celou skupinu
+let pickQ = '';
+const fold = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function applyPickFilter() {
+  const q = fold(pickQ), root = document.getElementById('app');
+  const clr = document.getElementById('pickClear'); if (clr) clr.hidden = !q;
+  let any = 0;
+  root.querySelectorAll('.psec').forEach(sec => {
+    const head = sec.querySelector('.pick-h'), groupHit = q && head && fold(head.textContent).includes(q);
+    let vis = 0;
+    sec.querySelectorAll('.pick:not(.add),.prog').forEach(el => { const ok = !q || groupHit || fold(el.textContent).includes(q); el.hidden = !ok; if (ok) vis++; });
+    const form = sec.querySelector('#customForm'); if (form) form.hidden = !!q;
+    const note = sec.querySelector(':scope > .note'); if (note) note.hidden = !!q;
+    sec.hidden = !!q && !vis; any += vis;
+  });
+  const none = document.getElementById('pickNone'); if (none) none.hidden = !q || any > 0;
+}
 function viewPick() {
   const act = S.active || [];
-  const sec = CATALOG.map(([g, items]) => `<h3 class="pick-h">${esc(g)}</h3><div class="pick-grid">${items.map(([id, t]) => `<button class="pick ${act.includes(id) ? 'on' : ''}" data-pick="${id}" aria-pressed="${act.includes(id)}"><span class="pi">${actIcon(id)}</span><span>${esc(t)}</span></button>`).join('')}</div>`).join('');
+  const sec = CATALOG.map(([g, items]) => `<div class="psec"><h3 class="pick-h">${esc(g)}</h3><div class="pick-grid">${items.map(([id, t]) => `<button class="pick ${act.includes(id) ? 'on' : ''}" data-pick="${id}" aria-pressed="${act.includes(id)}"><span class="pi">${actIcon(id)}</span><span>${esc(t)}</span></button>`).join('')}</div></div>`).join('');
   const custom = (S.custom || []).map(c => `<button class="pick ${act.includes(c.id) ? 'on' : ''}" data-pick="${c.id}" aria-pressed="${act.includes(c.id)}"><i class="pdel" data-delcustom="${c.id}" role="button" aria-label="Smazat">×</i><span class="pi" style="font-size:30px;display:grid;place-items:center">${esc(c.ic || '⭐')}</span><span>${esc(c.t)}</span></button>`).join('');
   return `<div class="gut" style="padding-top:calc(20px + env(safe-area-inset-top,0px))"><div class="inner">
     <div style="display:flex;align-items:center;gap:12px"><button class="back" data-tab="home" aria-label="Zpět">${I.left}</button><div><h2 class="sec">Moje aktivity</h2><p class="note" style="margin:2px 0 0">Vybráno ${act.length}. Ťuknutím přidáš nebo odebereš. Doporučujeme 2–4 najednou.</p></div></div>
-    <h3 class="pick-h">Výzvy</h3><p class="note" style="margin:-4px 0 8px">Větší věc s metou a odměnou na konci. Zapni jen ty, které jsou tvoje; ťuknutím je zase vypneš.</p>
-    <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><img class="pimg" src="img/challenges/${p.id}.webp" alt=""><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small>Meta: ${esc(p.ms[0].l)}${p.kind === 'once' ? ' · jednorázové' : p.kind === 'week' ? ' · týdně' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div>
-    <h3 class="pick-h">Vlastní</h3>
-    <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div>
+    <label class="psearch"><span aria-hidden="true">🔍</span><input id="pickSearch" type="search" placeholder="Hledat aktivitu nebo výzvu" autocomplete="off" enterkeyhint="search" value="${esc(pickQ)}" aria-label="Hledat aktivitu nebo výzvu"><button type="button" id="pickClear" aria-label="Smazat hledání" ${pickQ ? '' : 'hidden'}>×</button></label>
+    <div id="pickNone" class="card" style="padding:14px 16px" hidden><b>Nic takového tu zatím není.</b><p class="note" style="margin:4px 0 10px">Přidej si to jako vlastní aktivitu.</p><button class="btn" id="pickAddQ">Přidat vlastní</button></div>
+    <div class="psec"><h3 class="pick-h">Výzvy</h3><p class="note" style="margin:-4px 0 8px">Větší věc s metou a odměnou na konci. Zapni jen ty, které jsou tvoje; ťuknutím je zase vypneš.</p>
+    <div class="progs">${STEPS.filter(p => p.prog).map(p => { const on = (S.programs || []).includes(p.id); return `<button class="prog ${on ? 'on' : ''}" data-prog="${p.id}" aria-pressed="${on}"><img class="pimg" src="img/challenges/${p.id}.webp" alt=""><div><b>${esc(p.prog)}</b><span>${esc(p.pd)}</span><small><span>Meta:</span> <span>${esc(p.ms[0].l)}</span>${p.kind === 'once' ? ' · <span>jednorázové</span>' : p.kind === 'week' ? ' · <span>týdně</span>' : ''}</small></div><i>${on ? '✓' : '+'}</i></button>`; }).join('')}</div></div>
+    <div class="psec" data-keep><h3 class="pick-h">Vlastní</h3>
+    <div class="pick-grid">${custom}<form class="pick add" id="customForm"><input id="customName" maxlength="32" placeholder="Název aktivity" autocomplete="off" required><button class="btn" style="padding:10px;font-size:14px">Přidat vlastní</button></form></div></div>
     ${sec}
     <p class="note">Každý splněný úkol se počítá. Den s aspoň jedním splněným úkolem je „aktivní den“ a ty odemykají vylepšení appky.</p>
   </div></div>`;
@@ -393,6 +413,7 @@ function render() {
   app.innerHTML = views[tab]();
   renderTabs();
   renderSide();
+  if (tab === 'pick' && pickQ) queueMicrotask(applyPickFilter); // až po překladu (i18n překládá v MutationObserveru, ten je ve frontě dřív)
   if (tab === 'more') { bindTimer(); const so = S.social || {}; if (window.cloud && cloud.user() && Date.now() - (so.refAt || 0) > 6e5) { S.social = so; so.refAt = Date.now(); refSync(); } }
   if (tab === 'circle') circleRefresh();
 }
@@ -1199,7 +1220,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,#pickClear,#pickAddQ,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1216,6 +1237,8 @@ document.addEventListener('click', e => {
   if (ds.quick) { const f = app.querySelector(`.pform[data-cid="${ds.cid}"] .ptext`); if (f) { f.value = ds.quick; f.focus(); } return; }
   if (ds.post) { if (circleBusy) return; const form = t.closest('.pform'); const txt = (form.querySelector('.ptext').value || '').trim(); const to = form.querySelector('[data-pto]').value || null; if (!txt) { toast('Napiš nějaký vzkaz.'); return; } circleBusy = true; t.disabled = true; circle.post(ds.post, txt, to).then(() => circleRefresh(true)).catch(e => { toast(circle.msg(e)); t.disabled = false; }).finally(() => { circleBusy = false; }); return; }
   if (ds.delpost) { circle.delPost(+ds.delpost).then(() => circleRefresh(true)).catch(e => toast(circle.msg(e))); return; }
+  if (t.id === 'pickClear') { pickQ = ''; const i = document.getElementById('pickSearch'); if (i) { i.value = ''; i.focus(); } applyPickFilter(); return; }
+  if (t.id === 'pickAddQ') { const v = pickQ.trim(); pickQ = ''; render(); const n = document.getElementById('customName'); if (n) { n.value = v.slice(0, 32); n.focus(); n.scrollIntoView({ block: 'center' }); } return; }
   if (t.id === 'moveGo') { save(); const data = btoa(unescape(encodeURIComponent(JSON.stringify(S)))); location.href = PUBLIC_URL + '#move=' + encodeURIComponent(data); return; }
   if (ds.refshare) { shareText(`Zkus Poquito – appku na malé dobré návyky s roztomilým parťákem. Přes můj odkaz máš 🪙 ${REF_WELCOME} mincí na začátek:`, 'Odkaz zkopírován.', `${PUBLIC_URL}?ref=${ds.refshare}`); return; }
   if (ds.hview) { S.homeView = ds.hview; save(); render(); return; }
@@ -1261,6 +1284,7 @@ document.addEventListener('click', e => {
   if (t.id === 'cloudWipe') { if (!confirm('Smazat všechny tvoje záznamy z cloudu? V telefonu zůstanou.')) return; cloud.wipe().then(() => { S.cloud.last = 0; S.dirty = []; save(); render(); toast('Data v cloudu smazána.'); }).catch(() => toast('Nepovedlo se.')); return; }
   if (t.id === 'impYes') { S = Object.assign(S, pendingImport); pendingImport = null; save(); toast('Data obnovena.'); render(); return; }
 });
+document.addEventListener('input', e => { if (e.target.id !== 'pickSearch') return; pickQ = e.target.value; applyPickFilter(); });
 document.addEventListener('submit', e => { if (e.target.id !== 'customForm') return; e.preventDefault(); const v = document.getElementById('customName').value.trim(); if (!v) return; const id = 'c-' + Date.now().toString(36); (S.custom = S.custom || []).push({ id, t: v, ic: '⭐' }); (S.active = S.active || []).push(id); save(); render(); });
 let pendingImport = null;
 document.addEventListener('change', e => {

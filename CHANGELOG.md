@@ -2,6 +2,10 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.29 – 2026-11-07 (Honza: vyhledávání aktivit)
+- **Hledání ve výběru aktivit** (Moje aktivity): pole nahoře (při posunu zůstává viditelné), filtruje výzvy, vlastní i všechny aktivity katalogu podle zobrazeného textu (funguje i v překladech), bez diakritiky; shoda s názvem skupiny ukáže celou skupinu. Když nic, nabídne „Přidat vlastní“ s předvyplněným názvem. – *Honza: v dlouhém seznamu se špatně hledá.*
+- „Meta: …“ u výzev se teď překládá (rozdělené na kousky).
+
 ## 1.28 – 2026-11-07 (Honza: identifikátor pro Google Play)
 - `applicationId` / `appId` **`app.poquito`** (dřív `cz.honzapoko.klicek`), návrat z přihlášení `app.poquito://auth`. Java balíček (namespace) beze změny; widgety hledají obrázky v obou balíčcích zdrojů. – *Honza: v adrese na Google Play nemá být honzapoko; po prvním nahrání by to už nešlo změnit.* Na telefonu se appka nainstaluje jako nová (vedle staré).
 
