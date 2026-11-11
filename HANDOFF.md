@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (11. 11. 2026, verze 1.30)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (11. 11. 2026, verze 1.31)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 
@@ -32,7 +32,7 @@ Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (sta
 - **Cloud sync**: `days` (per den) + `profiles` (klíče `PROFILE_KEYS`), merge novější vyhrává (`pullMerge`).
 
 ## 3. Co je rozpracované / další kroky (v tomhle pořadí)
-- **Nové (11. 11., 1.30)**: výzva Vědomá vděčnost (karta `posCard()` na Domů, v seznamu úkolů se nevykresluje, v mřížce ano) a „Hezká věc pro partnerku“ znovu vedle 30 gest. Honza má vyzkoušet na telefonu psaní do políček (překreslení po `change` vrací fokus). Možná přidat do widgetu Úkoly a do připomínek (večer „Co hezkého se ti dnes stalo?“).
+- **Nové (11. 11., 1.30–1.31)**: výzva Vědomá vděčnost (karta `posCard()`, 3 políčka + po jednom další na Domů, v seznamu úkolů se nevykresluje, v mřížce ano) a „Hezká věc pro partnerku“ znovu vedle 30 gest. Honza má vyzkoušet na telefonu psaní do políček (překreslení po `change` vrací fokus). Možná přidat do widgetu Úkoly a do připomínek (večer „Co hezkého se ti dnes stalo?“).
 - **Nové (6. 11. večer, 1.26)**: název Poquito. Čeká na Honzu:
   1. ✔ **Vercel**: https://poquito-roan.vercel.app (projekt `poquito`, team `jan-pokornys-projects`; `vercel.json` → `outputDirectory: www`, build `npm run build`; service worker jen na webu). `PUBLIC_URL` přepnut; na github.io pruh s přesunem dat (`#move=`). GitHub Pages zatím nechat běžet kvůli přesunu.
   2. **Supabase** – Authentication → URL Configuration → Redirect URLs přidat `https://<nová adresa>/**` (jinak Google přihlášení na nové adrese selže); Site URL přepnout na novou adresu.

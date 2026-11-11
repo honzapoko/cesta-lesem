@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.30'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.31'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -77,7 +77,7 @@ const STEPS = [
 ];
 const posList = day => (entry('vedoma', day).p || []).filter(x => x && x.trim());
 const posTotal = () => Object.keys(S.logs).reduce((a, d) => a + posList(d).length, 0);
-const posGoal = () => S.posN || 3;
+const posGoal = () => 3;
 const msMet = m => m.val() >= m.goal;
 const stepOpen = i => (S.programs || []).includes(STEPS[i].id);
 
@@ -248,7 +248,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView', 'refBy', 'refClaimed', 'posN'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView', 'refBy', 'refClaimed'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -558,16 +558,15 @@ function viewHome() {
   return html + '</div></div>';
 }
 
-// Vědomá vděčnost: místo na Domů pro hezké věci dne; počet políček = cíl, po vyplnění se nabídne další (max 10)
+// Vědomá vděčnost: místo na Domů pro hezké věci dne; 3 políčka, po vyplnění všech se přidává po jednom další (max 20)
 function posCard() {
   if (!(S.programs || []).includes('vedoma')) return '';
   const N = posGoal(), p = entry('vedoma', cur).p || [], filled = p.filter(x => x && x.trim()).length, on = done('vedoma', cur);
-  const rows = Math.min(10, Math.max(N, filled + (filled >= N ? 1 : 0), p.length));
+  const rows = Math.min(20, Math.max(N, p.length, filled >= N ? filled + 1 : 0));
   const q = cur === TODAY ? 'Co hezkého se ti dnes stalo?' : 'Co hezkého se ti ten den stalo?';
-  return `<section class="card gest pos ${on ? 'done' : ''}"><div class="gtop"><span class="gic">✨</span><div style="flex:1;min-width:0"><small>Vědomá vděčnost · ${filled} / ${N}</small><h3>${q}</h3></div>
+  return `<section class="card gest pos ${on ? 'done' : ''}"><div class="gtop"><span class="gic">✨</span><div style="flex:1;min-width:0"><small>Vědomá vděčnost · ${filled >= N ? filled : filled + ' / ' + N}</small><h3>${q}</h3></div>
     <button class="check ${on ? 'on' : ''}" data-toggle="vedoma" aria-pressed="${on}" aria-label="Splněno: Vědomá vděčnost">${I.check}</button></div>
-    <div class="plist">${Array.from({ length: rows }, (_, k) => `<input id="p-${k}" data-p="${k}" data-id="vedoma" value="${esc(p[k] || '')}" placeholder="${k + 1}. ${k === 0 ? 'Třeba úsměv, dobrá káva, hezká zpráva…' : ''}" autocomplete="off" enterkeyhint="next">`).join('')}</div>
-    <div class="pfoot"><span class="note">Kolik denně:</span>${[1, 3, 5].map(n => `<button class="chip ${N === n ? 'on' : ''}" data-posn="${n}">${n}</button>`).join('')}</div></section>`;
+    <div class="plist">${Array.from({ length: rows }, (_, k) => `<input id="p-${k}" data-p="${k}" data-id="vedoma" value="${esc(p[k] || '')}" placeholder="${k + 1}. ${k === 0 ? 'Třeba úsměv, dobrá káva, hezká zpráva…' : ''}" autocomplete="off" enterkeyhint="next">`).join('')}</div></section>`;
 }
 
 function gestCard() {
@@ -1240,7 +1239,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,#pickClear,#pickAddQ,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-posn],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,#pickClear,#pickAddQ,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1286,7 +1285,6 @@ document.addEventListener('click', e => {
   if (ds.buy) { const it = itemById(ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
   if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; const p = PLACES.find(x => x.id === ds.scene); if (p && !placeOpen(p)) { S.placeHint = p.id; render(); return; } S.placeHint = null; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
-  if (ds.posn) { S.posN = +ds.posn; save(); render(); return; }
   if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }
   if (ds.gest !== undefined) { const on = !entry('gesto', cur).d; setEntry('gesto', { d: on, k: +ds.gest }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) { toast('Krásné gesto. Teď jí dej prostor.'); afterToggle('gesto'); } return; }
   if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); markFull(cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
@@ -1335,12 +1333,13 @@ document.addEventListener('change', e => {
   if (n >= posGoal() && !done('vedoma', cur)) { setEntry('vedoma', { d: true }, cur); markFull(cur); save(); toast('Krásný den. Hezké věci jsou zapsané.'); }
   else save();
   // překreslit až po přesunu fokusu (ťuknutí do dalšího políčka), a fokus vrátit tam, kam uživatel mířil
-  setTimeout(() => { const a = document.activeElement, aid = a && a.id, pos = a && a.selectionStart; render(); const f = aid && document.getElementById(aid); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (x) {} } }, 0);
+  setTimeout(() => { const a = document.activeElement, aid = (a && a.id) || posNext, pos = a && a.selectionStart; posNext = null; render(); const f = aid && document.getElementById(aid); if (f) { f.focus(); try { if (pos != null) f.setSelectionRange(pos, pos); } catch (x) {} } }, 0);
 });
-// Enter v hezké věci = skok na další políčko
+// Enter v hezké věci = skok na další políčko (na posledním se po překreslení skočí do nově přidaného)
+let posNext = null;
 document.addEventListener('keydown', e => {
   const el = e.target; if (e.key !== 'Enter' || !el.dataset || el.dataset.p === undefined) return;
-  e.preventDefault(); const f = document.getElementById('p-' + (+el.dataset.p + 1)); if (f) f.focus(); else el.blur();
+  e.preventDefault(); const nid = 'p-' + (+el.dataset.p + 1), f = document.getElementById(nid); if (f) f.focus(); else { if (el.value.trim()) posNext = nid; el.blur(); }
 });
 document.addEventListener('change', e => { const el = e.target; if (!el.dataset.rule) return; const f = el.dataset.field; let v = el.value; if (f === 'every') v = +v; setRule(el.dataset.rule, { [f]: v }); if (f === 'mode') render(); });
 let widgetT = null;

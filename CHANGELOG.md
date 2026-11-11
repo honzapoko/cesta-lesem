@@ -2,6 +2,9 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.31 – 2026-11-11 (Honza: bez volby počtu)
+- Vědomá vděčnost: pryč volba „Kolik denně“; vždy 3 políčka, splněno po vyplnění tří, pak se po jednom přidává další (max 20). Enter na posledním vyplněném políčku skočí rovnou do nového. – *Honza: dej tam 3 pole a po vyplnění přidávej po jednom.*
+
 ## 1.30 – 2026-11-11 (Honza: zmizela hezká věc pro manželku, chce víc vnímat dobré věci)
 - **Oprava: „Hezká věc pro partnerku“ zase denně na Domů.** Po spuštění 30 gest se denní úkol schovával (gesto ho nahrazovalo). Teď jsou to dva samostatné úkoly; staré dny do 10. 11. se gestem dál počítají jako splněné (`ZENA_SPLIT`). – *Honza: zmizely mi denní hezké věci pro manželku.*
 - **Nová výzva „Vědomá vděčnost“** (`vedoma`, Moje aktivity → Výzvy): vlastní karta na Domů „Co hezkého se ti dnes stalo?“ s políčky rovnou k psaní, počet denně 1/3/5 (`S.posN`, výchozí 3), po vyplnění se nabídne další políčko (max 10), Enter skáče dál. Splní se sama, jakmile je zapsáno tolik věcí, kolik je nastaveno. Mety 21 dní a 100 hezkých věcí. Zápisy (`logs[den].vedoma.p`) jsou v Deníku vděčnosti s ✨. – *Honza: potřebuju si víc zvědomovat hezké věci, jinak vidím jen ty negativní.*
