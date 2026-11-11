@@ -1,4 +1,4 @@
-# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (11. 11. 2026, verze 1.31)
+# HANDOFF.md – stav projektu Poquito, dříve Slothkin / Klíček (11. 11. 2026, verze 1.32)
 
 Pro nové vlákno s Claudem: přečti `CLAUDE.md` (pravidla), tenhle soubor (stav) a `CHANGELOG.md` (co se měnilo a proč). Pak není potřeba nic dalšího.
 

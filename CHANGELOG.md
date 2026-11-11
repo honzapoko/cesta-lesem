@@ -2,6 +2,9 @@
 
 Verze = `APP_VERSION` v `app.js` (zobrazuje se ve Více dole) = `?v=N` u skriptů v `index.html` = `lenochod-vN` v `sw.js`. Při každé změně kódu zvýšit všechny tři a přidat řádek sem (co + **proč**). Android `versionCode/versionName` v `android/app/build.gradle` se zvedá jen před nahráním na Google Play.
 
+## 1.32 – 2026-11-11
+- Doplněn překlad počítadla „Vědomá vděčnost · N“ (po třech zapsaných se ukazuje jen počet). – *chyběl klíč v i18n.*
+
 ## 1.31 – 2026-11-11 (Honza: bez volby počtu)
 - Vědomá vděčnost: pryč volba „Kolik denně“; vždy 3 políčka, splněno po vyplnění tří, pak se po jednom přidává další (max 20). Enter na posledním vyplněném políčku skočí rovnou do nového. – *Honza: dej tam 3 pole a po vyplnění přidávej po jednom.*
 
