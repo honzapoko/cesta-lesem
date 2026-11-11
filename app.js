@@ -15,7 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
 
 // ---------- state ----------
-const APP_VERSION = '1.29'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
+const APP_VERSION = '1.30'; // = ?v=N v index.html a lenochod-vN v sw.js; změny v CHANGELOG.md
 const KEY = 'cesta-lesem-v2';
 let S = { v: 2, logs: {}, rewards: {}, celebrated: [], unlockSeen: 0, celDays: {}, theme: 'light', updatedAt: 0, dayTs: {}, dirty: [], cloud: { last: 0, email: '' } };
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(S, JSON.parse(r)); } catch (e) {}
@@ -26,7 +26,9 @@ if (!S.programs) { S.programs = []; const used = new Set(); for (const d in S.lo
 const save = () => { S.updatedAt = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Nepodařilo se uložit. Zkontroluj místo v telefonu.'); } schedulePush(); if (window.native) { native.mirror(); pushWidget(); } scheduleStatus(); };
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && !!(L.gesto && L.gesto.d); };
+const done = (id, day) => { const L = S.logs[day]; if (!L) return false; if (L[id] && L[id].d) return true; return id === 'zena' && day < ZENA_SPLIT && !!(L.gesto && L.gesto.d); };
+// do 1.30 gesto nahrazovalo denní hezkou věc pro partnerku; od té doby jsou to dva samostatné úkoly
+const ZENA_SPLIT = '2026-11-11';
 const doneDays = id => Object.keys(S.logs).filter(k => done(id, k)).sort();
 const count = id => doneDays(id).length;
 const entry = (id, day) => (S.logs[day] && S.logs[day][id]) || {};
@@ -68,8 +70,14 @@ const STEPS = [
     ms: [{ id: 'offline-1', l: '14 večerů bez obrazovky', goal: 14, val: () => count('offline') }] },
   { id: 'vydaje', ic: '💶', t: 'Zapsat výdaje', sub: 'Každý večer, co jsi dnes utratil.', kind: 'day', note: 'text', ph: 'Za co a kolik?', prog: 'Peníze pod kontrolou', pd: 'Denně si zapiš výdaje. Nejde o šetření, ale o to vědět, kam peníze tečou.',
     why: 'Co měříš, to řídíš.',
-    ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] }
+    ms: [{ id: 'vydaje-1', l: '30 dní zapsáno', goal: 30, val: () => count('vydaje') }] },
+  { id: 'vedoma', ic: '✨', t: 'Vědomá vděčnost', sub: 'Hezké věci, které se ti dnes staly.', kind: 'day', note: 'pos', prog: 'Vědomá vděčnost', pd: 'Každý den si zapiš pár hezkých věcí, které se ti staly. Mozek si to špatné všimne sám; tohle ho učí vidět i to dobré.',
+    why: 'Co si zapíšeš, to začneš během dne vídat.',
+    ms: [{ id: 'vedoma-1', l: '21 dní vědomé vděčnosti', goal: 21, val: () => count('vedoma') }, { id: 'vedoma-2', l: '100 hezkých věcí zapsáno', goal: 100, val: () => posTotal() }] }
 ];
+const posList = day => (entry('vedoma', day).p || []).filter(x => x && x.trim());
+const posTotal = () => Object.keys(S.logs).reduce((a, d) => a + posList(d).length, 0);
+const posGoal = () => S.posN || 3;
 const msMet = m => m.val() >= m.goal;
 const stepOpen = i => (S.programs || []).includes(STEPS[i].id);
 
@@ -240,7 +248,7 @@ function remCard() {
 }
 
 // ---------- cloud (volitelné) ----------
-const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView', 'refBy', 'refClaimed'];
+const PROFILE_KEYS = ['rewards', 'celebrated', 'unlockSeen', 'celDays', 'theme', 'timerMin', 'gestStart', 'active', 'custom', 'garden', 'fullDays', 'remind', 'rules', 'share', 'me', 'programs', 'goals', 'pal', 'lang', 'homeView', 'refBy', 'refClaimed', 'posN'];
 const profileState = () => { const o = {}; PROFILE_KEYS.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return o; };
 const cloudOn = () => !!(window.cloud && window.cloud.user());
 let pushT = null, syncing = false, profileDirty = false;
@@ -311,7 +319,7 @@ function viewDashboard() {
   const pct = id => Math.round(last30.filter(d => done(id, d)).length / 30 * 100);
   const badges = STEPS.flatMap((s, i) => s.ms.map(m => ({ s, i, m })));
   const metN = badges.filter(b => msMet(b.m)).length;
-  const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim()).slice(0, 8);
+  const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim() || posList(d).length).slice(0, 8);
   const p = lv.to ? (lv.x - lv.from) / (lv.to - lv.from) * 100 : 100;
   return `<div class="dash">
     <div class="dash-head"><div><div class="logo">Poquito${LEAF}</div><div class="tagline">Přehled · ${u ? esc(u.email) : 'nepřihlášeno'}</div></div>
@@ -330,7 +338,7 @@ function viewDashboard() {
     <h3 style="font-size:20px;margin:6px 0 0">Odemčené funkce</h3>
     <div class="rgrid rgrid3">${UNLOCKS.map(x => { const ok = walks() >= x.n; return `<div class="rcard ${ok ? 'met' : 'lockd'}"><b>${ok ? '✓ ' : ''}${esc(x.t)}</b><span>${ok ? esc(x.d) : 'Aktivní den č. ' + x.n}</span></div>`; }).join('')}</div>
     ${days.length ? `<h3 style="font-size:20px;margin:6px 0 0">Deník</h3><div class="diary">${days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
-      return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('')}</div>` : ''}
+      return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}${posList(d).map(x => `<li>✨ ${esc(x)}</li>`).join('')}</ul></div>`; }).join('')}</div>` : ''}
   </div>`;
 }
 function renderSide() {
@@ -428,7 +436,7 @@ function renderTabs() {
 
 // ---------- home ----------
 function visibleTasks() {
-  return STEPS.filter((s, i) => stepOpen(i)).filter(s => !(s.id === 'zena' && S.gestStart)).filter(s => { if (s.kind !== 'once') return true; const f = doneDays(s.id)[0]; return !f || f === cur; });
+  return STEPS.filter((s, i) => stepOpen(i)).filter(s => { if (s.kind !== 'once') return true; const f = doneDays(s.id)[0]; return !f || f === cur; });
 }
 function markFull(day) { S.fullDays = S.fullDays || {}; const saved = cur; cur = day; const t = visibleTasks().concat(activeTasks()); const all = t.length > 0 && t.every(isDoneFor); cur = saved; if (all) S.fullDays[day] = 1; else delete S.fullDays[day]; }
 const isDoneFor = s => s.kind === 'week' ? doneDays(s.id).some(d => weekKey(d) === weekKey(cur)) : done(s.id, cur);
@@ -544,10 +552,22 @@ function viewHome() {
   html += `<div class="daynav"><button data-day="-1" ${cur <= addDays(TODAY, -BACK) ? 'disabled' : ''} aria-label="Předchozí den">${I.left}</button>
     <div class="lbl">${esc(lbl)}<small>${d.getDate()}. ${d.getMonth() + 1}.</small></div>
     <button data-day="1" ${cur >= TODAY ? 'disabled' : ''} aria-label="Další den">${I.right}</button></div>
-    ${moveBanner()}${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${gestCard()}
-    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span><span class="hview" role="group" aria-label="Zobrazení úkolů"><button data-hview="list" class="${S.homeView !== 'grid' ? 'on' : ''}" aria-label="Seznam">${I.vlist}</button><button data-hview="grid" class="${S.homeView === 'grid' ? 'on' : ''}" aria-label="Přehled">${I.vgrid}</button></span></h2>${S.homeView === 'grid' ? `<div class="hcards">${tasks.map(habitCard).join('')}</div>` : tasks.map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
+    ${moveBanner()}${nameCard()}${palCard()}${emptyCard()}${circleTeaser()}${posCard()}${gestCard()}
+    <section class="card tasks"><h2>Úkoly <span>${nDone} / ${tasks.length}</span><span class="hview" role="group" aria-label="Zobrazení úkolů"><button data-hview="list" class="${S.homeView !== 'grid' ? 'on' : ''}" aria-label="Seznam">${I.vlist}</button><button data-hview="grid" class="${S.homeView === 'grid' ? 'on' : ''}" aria-label="Přehled">${I.vgrid}</button></span></h2>${S.homeView === 'grid' ? `<div class="hcards">${tasks.map(habitCard).join('')}</div>` : tasks.filter(s => s.id !== 'vedoma').map(taskHtml).join('')}<div style="padding:6px 16px 14px"><button class="btn sec" data-tab="pick">＋ Přidat aktivitu</button></div></section>`;
   if (nu) html += `<div class="next"><div class="lk">${I.lock}</div><div><b>${esc(nu.t)}</b><span>Odemkne se po ${nu.n}. aktivním dni. ${esc(nu.d)}</span></div></div>`;
   return html + '</div></div>';
+}
+
+// Vědomá vděčnost: místo na Domů pro hezké věci dne; počet políček = cíl, po vyplnění se nabídne další (max 10)
+function posCard() {
+  if (!(S.programs || []).includes('vedoma')) return '';
+  const N = posGoal(), p = entry('vedoma', cur).p || [], filled = p.filter(x => x && x.trim()).length, on = done('vedoma', cur);
+  const rows = Math.min(10, Math.max(N, filled + (filled >= N ? 1 : 0), p.length));
+  const q = cur === TODAY ? 'Co hezkého se ti dnes stalo?' : 'Co hezkého se ti ten den stalo?';
+  return `<section class="card gest pos ${on ? 'done' : ''}"><div class="gtop"><span class="gic">✨</span><div style="flex:1;min-width:0"><small>Vědomá vděčnost · ${filled} / ${N}</small><h3>${q}</h3></div>
+    <button class="check ${on ? 'on' : ''}" data-toggle="vedoma" aria-pressed="${on}" aria-label="Splněno: Vědomá vděčnost">${I.check}</button></div>
+    <div class="plist">${Array.from({ length: rows }, (_, k) => `<input id="p-${k}" data-p="${k}" data-id="vedoma" value="${esc(p[k] || '')}" placeholder="${k + 1}. ${k === 0 ? 'Třeba úsměv, dobrá káva, hezká zpráva…' : ''}" autocomplete="off" enterkeyhint="next">`).join('')}</div>
+    <div class="pfoot"><span class="note">Kolik denně:</span>${[1, 3, 5].map(n => `<button class="chip ${N === n ? 'on' : ''}" data-posn="${n}">${n}</button>`).join('')}</div></section>`;
 }
 
 function gestCard() {
@@ -1047,9 +1067,9 @@ function viewMore() {
     h += `<h3 style="font-size:20px">Odměny</h3><div class="rgrid">${all.map(({ s, i, m }) => { const met = msMet(m); return `<div class="rcard ${met ? 'met' : ''} ${stepOpen(i) ? '' : 'lockd'}"><b>${met ? '🎁 ' : ''}${esc(m.l)}</b><span>${esc(S.rewards[m.id] || 'Odměnu si napiš na Cestě')}</span><span>${s.ic} ${esc(s.t)}</span></div>`; }).join('')}</div>`;
   }
   if (has('diary')) {
-    const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim()).slice(0, 60);
+    const days = Object.keys(S.logs).sort().reverse().filter(d => (entry('les', d).g || []).some(x => x && x.trim()) || (entry('zena', d).n || '').trim() || (entry('vecer', d).n || '').trim() || posList(d).length).slice(0, 60);
     h += `<h3 style="font-size:20px">Deník vděčnosti</h3><div class="diary">${days.length ? days.map(d => { const g = (entry('les', d).g || []).filter(x => x && x.trim()); const z = entry('zena', d).n, v = entry('vecer', d).n; const dt = fromIso(d);
-      return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
+      return `<div class="card dentry"><small>${dt.getDate()}. ${dt.getMonth() + 1}. ${DAYNAMES[dt.getDay()]}</small><ul>${g.map(x => `<li>${esc(x)}</li>`).join('')}${z ? `<li>💛 ${esc(z)}</li>` : ''}${v ? `<li>🌙 ${esc(v)}</li>` : ''}${posList(d).map(x => `<li>✨ ${esc(x)}</li>`).join('')}</ul></div>`; }).join('') : '<p class="note">Zatím prázdný. Zapiš tři vděčnosti u ranního lesa.</p>'}</div>`;
   }
   if (window.native && native.isNative) h += remCard();
   h += `<section class="card" style="padding:14px 16px"><h3 style="font-size:18px">Jazyk</h3><div class="langrow" data-noi18n>${i18n.LANGS.map(([id, l]) => `<button data-lang="${id}" class="${i18n.lang === id ? 'on' : ''}" lang="${id}">${l}</button>`).join('')}</div></section>`;
@@ -1088,7 +1108,7 @@ function bindTimer() {
     }, 250);
     draw();
   };
-  function finish() { clearInterval(timerRun); timerRun = null; releaseWake(); ambientStop(2.5); gong(0.6); if (stepOpen(5) && !done('medit', TODAY)) { setEntry('medit', { d: true }, TODAY); save(); toast('Meditace odškrtnutá. Krásně.'); } else toast('Hotovo. Krásně.'); timerLeft = timerMin * 60; render(); }
+  function finish() { clearInterval(timerRun); timerRun = null; releaseWake(); ambientStop(2.5); gong(0.6); if ((S.programs || []).includes('medit') && !done('medit', TODAY)) { setEntry('medit', { d: true }, TODAY); save(); toast('Meditace odškrtnutá. Krásně.'); } else toast('Hotovo. Krásně.'); timerLeft = timerMin * 60; render(); }
 }
 const releaseWake = () => { try { wake && wake.release(); } catch (e) {} wake = null; };
 let actx = null;
@@ -1220,7 +1240,7 @@ function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = do
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,#pickClear,#pickAddQ,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
+  const t = e.target.closest('#goaladd,[data-goaldone],[data-goaldel],[data-member],[data-unpick],[data-unprog],[data-delcustom],#nameOk,#moveGo,#pickClear,#pickAddQ,[data-pal],[data-hview],[data-refshare],[data-lang],[data-prog],[data-quick],[data-post],[data-delpost],[data-avatar],[data-share],[data-share-code],[data-nudge],[data-leave],#ccreate,#cjoin,[data-remtest],[data-remch],#remExact,[data-resetpos],[data-sell],[data-sellyes],[data-sellno],[data-buy],[data-scene],[data-pick],[data-gstart],[data-gest],[data-posn],[data-tab],[data-toggle],[data-open],[data-tag],[data-day],[data-cal],[data-goto],[data-tmin],[data-tsnd],#themeSw,#exp,#impYes,#cloudIn,#cloudSync,#cloudOut,#cloudWipe');
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) {
@@ -1266,6 +1286,7 @@ document.addEventListener('click', e => {
   if (ds.buy) { const it = itemById(ds.buy); if (!it || owned(it.id) || coins() < it.price) return; S.garden = S.garden || { owned: [], scene: 'path' }; S.garden.owned.push(it.id); save(); render(); toast(`${it.t}: v zahradě.`); if (navigator.vibrate) navigator.vibrate(20); return; }
   if (ds.scene) { S.garden = S.garden || { owned: [], scene: 'path' }; const p = PLACES.find(x => x.id === ds.scene); if (p && !placeOpen(p)) { S.placeHint = p.id; render(); return; } S.placeHint = null; S.garden.scene = ds.scene; save(); render(); return; }
   if (ds.pick) { S.active = S.active || []; const k = S.active.indexOf(ds.pick); k < 0 ? S.active.push(ds.pick) : S.active.splice(k, 1); save(); render(); return; }
+  if (ds.posn) { S.posN = +ds.posn; save(); render(); return; }
   if (ds.gstart) { S.gestStart = TODAY; save(); render(); return; }
   if (ds.gest !== undefined) { const on = !entry('gesto', cur).d; setEntry('gesto', { d: on, k: +ds.gest }, cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) { toast('Krásné gesto. Teď jí dej prostor.'); afterToggle('gesto'); } return; }
   if (ds.toggle) { const id = ds.toggle, on = !done(id, cur); setEntry(id, { d: on }, cur); markFull(cur); if (on && navigator.vibrate) navigator.vibrate(30); save(); render(); if (on) afterToggle(id); return; }
@@ -1301,11 +1322,26 @@ document.addEventListener('input', e => {
   if (el.dataset.reward !== undefined) S.rewards[el.dataset.reward] = el.value;
   else if (!id) return;
   else if (el.dataset.g !== undefined) { const g = [...(entry(id, cur).g || ['', '', ''])]; g[+el.dataset.g] = el.value; setEntry(id, { g }, cur); }
+  else if (el.dataset.p !== undefined) { const p = [...(entry(id, cur).p || [])]; p[+el.dataset.p] = el.value; setEntry(id, { p }, cur); }
   else if (el.dataset.w) setEntry(id, { w: el.value === '' ? null : +el.value }, cur);
   else if (el.dataset.n) setEntry(id, { n: el.value }, cur);
   clearTimeout(typeT); typeT = setTimeout(save, 400);
 });
 matchMedia('(min-width: 960px)').addEventListener('change', () => render());
+// po dopsání hezké věci: splněno, jakmile je jich tolik, kolik si uživatel nastavil; přidá se další políčko
+document.addEventListener('change', e => {
+  const el = e.target; if (el.dataset.p === undefined) return;
+  const n = posList(cur).length;
+  if (n >= posGoal() && !done('vedoma', cur)) { setEntry('vedoma', { d: true }, cur); markFull(cur); save(); toast('Krásný den. Hezké věci jsou zapsané.'); }
+  else save();
+  // překreslit až po přesunu fokusu (ťuknutí do dalšího políčka), a fokus vrátit tam, kam uživatel mířil
+  setTimeout(() => { const a = document.activeElement, aid = a && a.id, pos = a && a.selectionStart; render(); const f = aid && document.getElementById(aid); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (x) {} } }, 0);
+});
+// Enter v hezké věci = skok na další políčko
+document.addEventListener('keydown', e => {
+  const el = e.target; if (e.key !== 'Enter' || !el.dataset || el.dataset.p === undefined) return;
+  e.preventDefault(); const f = document.getElementById('p-' + (+el.dataset.p + 1)); if (f) f.focus(); else el.blur();
+});
 document.addEventListener('change', e => { const el = e.target; if (!el.dataset.rule) return; const f = el.dataset.field; let v = el.value; if (f === 'every') v = +v; setRule(el.dataset.rule, { [f]: v }); if (f === 'mode') render(); });
 let widgetT = null;
 function pushWidget() {
